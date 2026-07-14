@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const ApiError = require("../../utils/ApiError");
 const asyncHandler = require("../../utils/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -8,101 +9,103 @@ const userModel = require("../../models/user");
 
 
 const addToCart = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const productId = req.params.productId;
+    const userId = req.user.id;
 
-  // =========================
-  // Validate Product ID
-  // =========================
+    const productId = req.params.productId;
 
-  if (!mongoose.Types.ObjectId.isValid(productId)) {
-    throw new ApiError(
-      400,
-      "Invalid Product ID"
-    );
-  }
+    const quantity = Number(req.body.quantity) || 1;
 
-  // =========================
-  // Find Product
-  // =========================
-
-  const product = await productModel.findById(productId);
-
-  if (!product) {
-    throw new ApiError(
-      404,
-      "Product not found"
-    );
-  }
-
-  // =========================
-  // Find Cart Item
-  // =========================
-
-  const cartItem = await Cart.findOne({
-    user: userId,
-    product: productId,
-  });
-
-  // =========================
-  // Increase Cart Quantity
-  // =========================
-
-  if (cartItem) {
-    if (cartItem.quantity >= product.stock) {
-      throw new ApiError(
-        400,
-        "Product is out of stock"
-      );
+    // Validate Product ID
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+        throw new ApiError(
+            400,
+            "Invalid Product ID"
+        );
     }
 
-    cartItem.quantity += 1;
+    // Validate Quantity
+    if (
+        !Number.isInteger(quantity) ||
+        quantity < 1
+    ) {
+        throw new ApiError(
+            400,
+            "Quantity must be at least 1"
+        );
+    }
 
-    await cartItem.save();
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          cartItem,
-          "Cart quantity increased"
-        )
-      );
-  }
-
-  // =========================
-  // Validate Product Stock
-  // =========================
-
-  if (product.stock <= 0) {
-    throw new ApiError(
-      400,
-      "Product is out of stock"
+    // Find Product
+    const product = await productModel.findById(
+        productId
     );
-  }
 
-  // =========================
-  // Create Cart Item
-  // =========================
+    if (!product) {
+        throw new ApiError(
+            404,
+            "Product not found"
+        );
+    }
 
-  const newCartItem = await Cart.create({
-    user: userId,
-    product: productId,
-  });
+    // Check Stock
+    if (product.stock <= 0) {
+        throw new ApiError(
+            400,
+            "Product is out of stock"
+        );
+    }
 
-  // =========================
-  // Send Response
-  // =========================
+    // Find Existing Cart Item
+    const cartItem = await Cart.findOne({
+        user: userId,
+        product: productId,
+    });
 
-  return res
-    .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        newCartItem,
-        "Cart item created successfully"
-      )
+    // Existing Cart Item
+    if (cartItem) {
+        const updatedQuantity =
+            cartItem.quantity + quantity;
+
+        if (updatedQuantity > product.stock) {
+            throw new ApiError(
+                400,
+                "Requested quantity exceeds available stock"
+            );
+        }
+
+        cartItem.quantity = updatedQuantity;
+
+        await cartItem.save();
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                cartItem,
+                "Cart quantity increased"
+            )
+        );
+    }
+
+    // Validate Requested Quantity
+    if (quantity > product.stock) {
+        throw new ApiError(
+            400,
+            "Requested quantity exceeds available stock"
+        );
+    }
+
+    // Create Cart Item
+    const newCartItem = await Cart.create({
+        user: userId,
+        product: productId,
+        quantity,
+    });
+
+    return res.status(201).json(
+        new ApiResponse(
+            201,
+            newCartItem,
+            "Cart item created successfully"
+        )
     );
 });
 

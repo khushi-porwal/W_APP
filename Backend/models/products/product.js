@@ -26,11 +26,11 @@ const productSchema = new mongoose.Schema({
         default:0,
         min:0
     },
-    images: [
-    {
-        type: String
-    }
-    ]
+    image: {
+    type: String,
+    required: true
+}
+    
 }, {
     timestamps :true
 })
