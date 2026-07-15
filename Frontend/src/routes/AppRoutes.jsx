@@ -3,10 +3,10 @@ import Products from "../pages/user/product/Products";
 import ProductDetails from "../pages/user/product/ProductDetails";
 import Signup from "../pages/auth/Signup";
 import Login from "../pages/auth/Login";
-
+import Cart from "../pages/user/cart/Cart";
 import Home from "../pages/user/Home";
 import Profile from "../pages/user/Profile";
-
+import Checkout from "../pages/user/checkout/Checkout";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRoutes() {
@@ -16,9 +16,23 @@ function AppRoutes() {
 
       <Route path="/products/:id" element={<ProductDetails />} />
       <Route path="/" element={<Home />} />
-
+      <Route
+        path="/checkout"
+        element={
+          <ProtectedRoute>
+            <Checkout />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/signup" element={<Signup />} />
-
+      <Route
+        path="/cart"
+        element={
+          <ProtectedRoute>
+            <Cart />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/login" element={<Login />} />
 
       <Route
@@ -53,14 +67,7 @@ export default AppRoutes;
 // and improves user experience. Actual authorization is
 // enforced on the backend using JWT authentication middleware.”
 
-
-
-
-
-
-
-
 // Interview answer
 
-// useParams is used to access dynamic URL parameters 
+// useParams is used to access dynamic URL parameters
 // from the current route.

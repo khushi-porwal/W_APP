@@ -1,12 +1,16 @@
 const mongoose = require("mongoose");
+
 const ApiError = require("../../utils/ApiError");
 const asyncHandler = require("../../utils/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
-const cartModel = require("../../models/carts/cart");
+
 const Cart = require("../../models/carts/cart");
 const productModel = require("../../models/products/product");
-const userModel = require("../../models/user");
 
+
+// ==========================================
+// ADD PRODUCT TO CART
+// ==========================================
 
 const addToCart = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -113,259 +117,219 @@ const addToCart = asyncHandler(async (req, res) => {
 });
 
 
+// ==========================================
+// GET USER CART
+// ==========================================
 
 const getCart = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+    const userId = req.user.id;
 
-  // =========================
-  // Get Cart Items
-  // =========================
+    // Get Cart Items With Product Details
+    const cartItems = await Cart.find({
+        user: userId,
+    }).populate("product");
 
-  const cartItems = await Cart.find({
-    user: userId,
-  }).populate("product");
+    // Find Invalid Cart Items
+    // Product may have been deleted by admin
+    const invalidCartItems = cartItems.filter(
+        (item) => !item.product
+    );
 
-  // =========================
-  // Cart Is Empty
-  // =========================
+    // Delete Invalid Cart Items
+    if (invalidCartItems.length > 0) {
+        const invalidCartIds = invalidCartItems.map(
+            (item) => item._id
+        );
 
-  if (cartItems.length === 0) {
-    return res
-      .status(200)
-      .json(
+        await Cart.deleteMany({
+            _id: {
+                $in: invalidCartIds,
+            },
+        });
+    }
+
+    // Keep Only Valid Cart Items
+    const validCartItems = cartItems.filter(
+        (item) => item.product
+    );
+
+    // Cart Is Empty
+    if (validCartItems.length === 0) {
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    totalItems: 0,
+                    totalAmount: 0,
+                    cartItems: [],
+                },
+                "Cart is empty"
+            )
+        );
+    }
+
+    // Calculate Total Quantity
+    const totalItems = validCartItems.reduce(
+        (total, item) => {
+            return total + item.quantity;
+        },
+        0
+    );
+
+    // Calculate Total Amount
+    const totalAmount = validCartItems.reduce(
+        (total, item) => {
+            return (
+                total +
+                item.product.price *
+                    item.quantity
+            );
+        },
+        0
+    );
+
+    // Prepare Cart Data
+    const cartData = {
+        totalItems,
+        totalAmount,
+        cartItems: validCartItems,
+    };
+
+    // Send Response
+    return res.status(200).json(
         new ApiResponse(
-          200,
-          {
-            totalItems: 0,
-            totalAmount: 0,
-            cartItems: [],
-          },
-          "Cart is empty"
+            200,
+            cartData,
+            "Cart fetched successfully"
         )
-      );
-  }
-
-  // =========================
-  // Calculate Total Quantity
-  // =========================
-
-  const totalItems = cartItems.reduce(
-    (total, item) => {
-      return total + item.quantity;
-    },
-    0
-  );
-
-  // =========================
-  // Calculate Total Amount
-  // =========================
-
-  const totalAmount = cartItems.reduce(
-    (total, item) => {
-      return total + (
-        item.product.price * item.quantity
-      );
-    },
-    0
-  );
-
-  // =========================
-  // Prepare Cart Data
-  // =========================
-
-  const cartData = {
-    totalItems,
-    totalAmount,
-    cartItems,
-  };
-
-  // =========================
-  // Send Response
-  // =========================
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        cartData,
-        "Cart fetched successfully"
-      )
     );
 });
 
+
+// ==========================================
+// DELETE CART ITEM
+// ==========================================
 
 const deleteCart = asyncHandler(async (req, res) => {
-  const cartId = req.params.cartId;
+    const { cartId } = req.params;
 
-  // =========================
-  // Validate Cart ID
-  // =========================
+    // Validate Cart ID
+    if (!mongoose.Types.ObjectId.isValid(cartId)) {
+        throw new ApiError(
+            400,
+            "Invalid Cart ID"
+        );
+    }
 
-  if (!mongoose.Types.ObjectId.isValid(cartId)) {
-    throw new ApiError(
-      400,
-      "Invalid Cart ID"
-    );
-  }
+    // Find And Delete User's Cart Item
+    const cart = await Cart
+        .findOneAndDelete({
+            _id: cartId,
+            user: req.user.id,
+        })
+        .populate("product");
 
-  // =========================
-  // Find And Delete Cart Item
-  // =========================
+    // Cart Item Not Found
+    if (!cart) {
+        throw new ApiError(
+            404,
+            "Cart item not found"
+        );
+    }
 
-  const cart = await cartModel
-    .findOneAndDelete({
-      _id: cartId,
-      user: req.user.id,
-    })
-    .populate("product")
-    .populate("user", "name email");
-
-  // =========================
-  // Cart Item Not Found
-  // =========================
-
-  if (!cart) {
-    throw new ApiError(
-      404,
-      "Cart item not found"
-    );
-  }
-
-  // =========================
-  // Send Response
-  // =========================
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        cart,
-        "Cart item deleted successfully"
-      )
+    // Send Response
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            cart,
+            "Cart item deleted successfully"
+        )
     );
 });
 
 
-
-// Why did you use
-
-// findOneAndDelete()
-
-// instead of
-
-// findByIdAndDelete()
-// Answer
-
-// Because I also need to verify that the cart item belongs to the 
-// authenticated user. findOneAndDelete() allows me to match both 
-// _id and user, preventing users from deleting someone else's cart item.
-
+// ==========================================
+// UPDATE CART QUANTITY
+// ==========================================
 
 const updateCart = asyncHandler(async (req, res) => {
-  const cartId = req.params.cartId;
+    const { cartId } = req.params;
 
-  // =========================
-  // Validate Cart ID
-  // =========================
+    // Validate Cart ID
+    if (!mongoose.Types.ObjectId.isValid(cartId)) {
+        throw new ApiError(
+            400,
+            "Invalid Cart ID"
+        );
+    }
 
-  if (!mongoose.Types.ObjectId.isValid(cartId)) {
-    throw new ApiError(
-      400,
-      "Invalid Cart ID"
-    );
-  }
+    // Convert Quantity To Number
+    const quantity = Number(req.body.quantity);
 
-  // =========================
-  // Get Quantity
-  // =========================
+    // Validate Quantity
+    if (
+        !Number.isInteger(quantity) ||
+        quantity < 1
+    ) {
+        throw new ApiError(
+            400,
+            "Quantity must be a positive integer"
+        );
+    }
 
-  const { quantity } = req.body;
+    // Find User's Cart Item
+    const cart = await Cart
+        .findOne({
+            _id: cartId,
+            user: req.user.id,
+        })
+        .populate("product");
 
-  // =========================
-  // Validate Quantity
-  // =========================
+    // Cart Item Not Found
+    if (!cart) {
+        throw new ApiError(
+            404,
+            "Cart item not found"
+        );
+    }
 
-  if (isNaN(quantity) || quantity < 1) {
-    throw new ApiError(
-      400,
-      "Quantity must be at least 1"
-    );
-  }
+    // Product Was Deleted
+    if (!cart.product) {
+        await Cart.findByIdAndDelete(cartId);
 
-  // =========================
-  // Find Cart Item
-  // =========================
+        throw new ApiError(
+            404,
+            "Product no longer exists"
+        );
+    }
 
-  const cart = await cartModel
-    .findOne({
-      _id: cartId,
-      user: req.user.id,
-    })
-    .populate("product");
+    // Validate Product Stock
+    if (quantity > cart.product.stock) {
+        throw new ApiError(
+            400,
+            `Only ${cart.product.stock} items are available`
+        );
+    }
 
-  // =========================
-  // Cart Item Not Found
-  // =========================
+    // Update Quantity
+    cart.quantity = quantity;
 
-  if (!cart) {
-    throw new ApiError(
-      404,
-      "Cart item not found"
-    );
-  }
+    await cart.save();
 
-  // =========================
-  // Validate Product
-  // =========================
-
-  if (!cart.product) {
-    throw new ApiError(
-      404,
-      "Product not found"
-    );
-  }
-
-  // =========================
-  // Validate Product Stock
-  // =========================
-
-  if (quantity > cart.product.stock) {
-    throw new ApiError(
-      400,
-      "Requested quantity exceeds available stock"
-    );
-  }
-
-  // =========================
-  // Update Cart Quantity
-  // =========================
-
-  cart.quantity = quantity;
-
-  await cart.save();
-
-  // =========================
-  // Send Response
-  // =========================
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        cart,
-        "Cart updated successfully"
-      )
+    // Send Response
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            cart,
+            "Cart updated successfully"
+        )
     );
 });
-
 
 
 module.exports = {
     addToCart,
     getCart,
     deleteCart,
-    updateCart
-}
+    updateCart,
+};

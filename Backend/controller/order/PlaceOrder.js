@@ -6,7 +6,7 @@ const cartModel = require("../../models/carts/cart");
 const orderModel = require("../../models/order/Order");
 const AddressModel = require("../../models/address/Address");
 const couponModel = require("../../models/coupon/coupon");
-
+const productModel = require("../../models/products/product");
 const placeOrder = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
@@ -15,6 +15,23 @@ const placeOrder = asyncHandler(async (req, res) => {
     couponCode,
     paymentMethod = "Razorpay",
   } = req.body;
+
+
+  const allowedPaymentMethods = [
+    "Razorpay",
+    "CashOnDelivery",
+];
+
+if (
+    !allowedPaymentMethods.includes(
+        paymentMethod
+    )
+) {
+    throw new ApiError(
+        400,
+        "Invalid payment method"
+    );
+}
 
   // ==========================
   // Validate Address ID
@@ -395,11 +412,14 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   if (status === "Delivered") {
     order.deliveredAt = new Date();
 
-    if (order.paymentMethod === "COD") {
-      order.paymentStatus = "Paid";
-      order.paidAt = new Date();
+    if (
+        order.paymentMethod ===
+        "CashOnDelivery"
+    ) {
+        order.paymentStatus = "Paid";
+        order.paidAt = new Date();
     }
-  }
+}
 
   // ==========================
   // Save Order
@@ -507,10 +527,11 @@ const cancelOrder = asyncHandler(async (req, res) => {
   // ==========================
 
   if (order.paymentStatus === "Paid") {
-    order.paymentStatus = "Refund Pending";
+    order.paymentStatus = "REFUND_PENDING";
     order.refundedAt = new Date();
-    order.refundReason = "Cancelled by Customer";
-  }
+    order.refundReason =
+        "Cancelled by Customer";
+}
 
   // ==========================
   // Cancel Order
