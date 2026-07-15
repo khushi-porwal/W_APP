@@ -1,4 +1,8 @@
-import { useContext, useState } from "react";
+import {
+    useContext,
+    useState,
+} from "react";
+
 import {
     Link,
     NavLink,
@@ -16,10 +20,17 @@ import {
 
 import { AuthContext } from "../../context/AuthContext";
 
-function Navbar() {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+import { CartContext } from "../../context/CartContext";
 
-    const { user, logout } = useContext(AuthContext);
+function Navbar() {
+    const [mobileMenuOpen, setMobileMenuOpen] =
+        useState(false);
+
+    const { user, logout } =
+        useContext(AuthContext);
+
+    const { totalItems } =
+        useContext(CartContext);
 
     const navigate = useNavigate();
 
@@ -77,6 +88,7 @@ function Navbar() {
 
                 {/* Desktop Actions */}
                 <div className="hidden items-center gap-2 md:flex">
+                    {/* Search */}
                     <button
                         type="button"
                         aria-label="Search"
@@ -87,6 +99,7 @@ function Navbar() {
 
                     {user && (
                         <>
+                            {/* Wishlist */}
                             <Link
                                 to="/wishlist"
                                 aria-label="Wishlist"
@@ -95,18 +108,31 @@ function Navbar() {
                                 <Heart size={20} />
                             </Link>
 
+                            {/* Cart */}
                             <Link
                                 to="/cart"
                                 aria-label="Cart"
-                                className="rounded-xl p-2.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+                                className="relative rounded-xl p-2.5 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
                             >
-                                <ShoppingBag size={20} />
+                                <ShoppingBag
+                                    size={20}
+                                />
+
+                                {totalItems > 0 && (
+                                    <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1 text-[10px] font-bold text-white">
+                                        {totalItems > 99
+                                            ? "99+"
+                                            : totalItems}
+                                    </span>
+                                )}
                             </Link>
                         </>
                     )}
 
+                    {/* Authentication */}
                     {user ? (
                         <div className="ml-2 flex items-center gap-3 border-l border-slate-200 pl-4">
+                            {/* Profile */}
                             <Link
                                 to="/profile"
                                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
@@ -118,6 +144,7 @@ function Navbar() {
                                 </span>
                             </Link>
 
+                            {/* Logout */}
                             <button
                                 type="button"
                                 onClick={handleLogout}
@@ -150,7 +177,8 @@ function Navbar() {
                     type="button"
                     onClick={() =>
                         setMobileMenuOpen(
-                            (previousState) => !previousState
+                            (previousState) =>
+                                !previousState
                         )
                     }
                     aria-label="Toggle navigation menu"
@@ -168,17 +196,23 @@ function Navbar() {
             {mobileMenuOpen && (
                 <div className="border-t border-slate-200 bg-white px-5 py-5 md:hidden">
                     <nav className="mx-auto flex max-w-7xl flex-col gap-2">
+                        {/* Home */}
                         <NavLink
                             to="/"
-                            onClick={() => setMobileMenuOpen(false)}
+                            onClick={() =>
+                                setMobileMenuOpen(false)
+                            }
                             className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                         >
                             Home
                         </NavLink>
 
+                        {/* Shop */}
                         <NavLink
                             to="/products"
-                            onClick={() => setMobileMenuOpen(false)}
+                            onClick={() =>
+                                setMobileMenuOpen(false)
+                            }
                             className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                         >
                             Shop
@@ -186,46 +220,70 @@ function Navbar() {
 
                         {user && (
                             <>
+                                {/* Wishlist */}
                                 <NavLink
                                     to="/wishlist"
                                     onClick={() =>
-                                        setMobileMenuOpen(false)
+                                        setMobileMenuOpen(
+                                            false
+                                        )
                                     }
                                     className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                                 >
                                     Wishlist
                                 </NavLink>
 
+                                {/* Cart */}
                                 <NavLink
                                     to="/cart"
                                     onClick={() =>
-                                        setMobileMenuOpen(false)
+                                        setMobileMenuOpen(
+                                            false
+                                        )
                                     }
-                                    className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                                 >
-                                    Cart
+                                    <span>
+                                        Cart
+                                    </span>
+
+                                    {totalItems > 0 && (
+                                        <span className="flex min-h-6 min-w-6 items-center justify-center rounded-full bg-slate-950 px-1.5 text-xs font-bold text-white">
+                                            {totalItems >
+                                            99
+                                                ? "99+"
+                                                : totalItems}
+                                        </span>
+                                    )}
                                 </NavLink>
 
+                                {/* Orders */}
                                 <NavLink
                                     to="/orders"
                                     onClick={() =>
-                                        setMobileMenuOpen(false)
+                                        setMobileMenuOpen(
+                                            false
+                                        )
                                     }
                                     className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                                 >
                                     My Orders
                                 </NavLink>
 
+                                {/* Profile */}
                                 <NavLink
                                     to="/profile"
                                     onClick={() =>
-                                        setMobileMenuOpen(false)
+                                        setMobileMenuOpen(
+                                            false
+                                        )
                                     }
                                     className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                                 >
                                     Profile
                                 </NavLink>
 
+                                {/* Logout */}
                                 <button
                                     type="button"
                                     onClick={handleLogout}
@@ -241,7 +299,9 @@ function Navbar() {
                                 <Link
                                     to="/login"
                                     onClick={() =>
-                                        setMobileMenuOpen(false)
+                                        setMobileMenuOpen(
+                                            false
+                                        )
                                     }
                                     className="rounded-xl border border-slate-300 px-4 py-3 text-center text-sm font-semibold text-slate-700"
                                 >
@@ -251,7 +311,9 @@ function Navbar() {
                                 <Link
                                     to="/signup"
                                     onClick={() =>
-                                        setMobileMenuOpen(false)
+                                        setMobileMenuOpen(
+                                            false
+                                        )
                                     }
                                     className="rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-semibold text-white"
                                 >
@@ -267,8 +329,3 @@ function Navbar() {
 }
 
 export default Navbar;
-
-
-// Link is used for client-side navigation, while 
-// NavLink also provides active route state for 
-// styling navigation links.

@@ -11,9 +11,12 @@ const userModel = require("../../models/user");
 const addToCart = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    const productId = req.params.productId;
+    const { productId } = req.params;
 
-    const quantity = Number(req.body.quantity) || 1;
+    const quantity =
+        req.body.quantity === undefined
+            ? 1
+            : Number(req.body.quantity);
 
     // Validate Product ID
     if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -30,7 +33,7 @@ const addToCart = asyncHandler(async (req, res) => {
     ) {
         throw new ApiError(
             400,
-            "Quantity must be at least 1"
+            "Quantity must be a positive integer"
         );
     }
 
@@ -46,7 +49,7 @@ const addToCart = asyncHandler(async (req, res) => {
         );
     }
 
-    // Check Stock
+    // Check Product Stock
     if (product.stock <= 0) {
         throw new ApiError(
             400,
@@ -60,7 +63,7 @@ const addToCart = asyncHandler(async (req, res) => {
         product: productId,
     });
 
-    // Existing Cart Item
+    // Product Already Exists In Cart
     if (cartItem) {
         const updatedQuantity =
             cartItem.quantity + quantity;
@@ -68,7 +71,7 @@ const addToCart = asyncHandler(async (req, res) => {
         if (updatedQuantity > product.stock) {
             throw new ApiError(
                 400,
-                "Requested quantity exceeds available stock"
+                `Only ${product.stock} items are available. You already have ${cartItem.quantity} in your cart`
             );
         }
 
@@ -85,11 +88,11 @@ const addToCart = asyncHandler(async (req, res) => {
         );
     }
 
-    // Validate Requested Quantity
+    // Validate New Cart Quantity
     if (quantity > product.stock) {
         throw new ApiError(
             400,
-            "Requested quantity exceeds available stock"
+            `Only ${product.stock} items are available`
         );
     }
 
@@ -104,7 +107,7 @@ const addToCart = asyncHandler(async (req, res) => {
         new ApiResponse(
             201,
             newCartItem,
-            "Cart item created successfully"
+            "Product added to cart successfully"
         )
     );
 });

@@ -16,27 +16,26 @@ const {
 );
 
 router.post(
-    "/add-To-Cart/:productId",
+    "/cart/:productId",
     authMiddleware,
     addToCart
 );
 
 router.get(
-    "/getCart",
+    "/cart",
     authMiddleware,
     getCart
 );
 
 router.delete(
-    "/delete-cart/:cartId",
+    "/cart/:cartId",
     authMiddleware,
     deleteCart
 );
 
 router.put(
-    "/update-cart/:cartId",
+    "/cart/:cartId",
     authMiddleware,
     updateCart
 );
-
 module.exports = router;
