@@ -1,5 +1,5 @@
+const mongoose = require("mongoose");
 const AddressModel = require("../../models/address/Address");
-const userModel = require("../../models/user");
 const ApiError = require("../../utils/ApiError");
 const asyncHandler = require("../../utils/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -298,8 +298,10 @@ const deleteAddress = asyncHandler(async (req, res) => {
   if (address.isDefault) {
     const nextAddress = await AddressModel.findOne({
       user: req.user.id,
-    });
-
+    })
+    .sort({
+      createdAt: -1,
+    })
     if (nextAddress) {
       nextAddress.isDefault = true;
 
