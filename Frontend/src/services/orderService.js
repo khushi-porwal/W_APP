@@ -5,7 +5,9 @@ import api from "./api";
 // PLACE ORDER
 // ==========================================
 
-export const placeOrder = async (orderData) => {
+export const placeOrder = async (
+    orderData
+) => {
     const response = await api.post(
         "/place-order",
         orderData
@@ -35,6 +37,11 @@ export const getMyOrders = async () => {
 export const getSingleOrder = async (
     orderId
 ) => {
+    console.log(
+        "SERVICE ORDER ID:",
+        orderId
+    );
+
     const response = await api.get(
         `/get-single-order/${orderId}`
     );
