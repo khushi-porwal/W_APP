@@ -6,10 +6,6 @@ const authMiddleware = require(
     "../../middleware/authMiddleware"
 );
 
-const adminMiddleware = require(
-    "../../middleware/adminMiddleware"
-);
-
 const {
     placeOrder,
     getMyOrder,
@@ -21,11 +17,20 @@ const {
 );
 
 
+// ==========================================
+// PLACE ORDER
+// ==========================================
+
 router.post(
     "/place-order",
     authMiddleware,
     placeOrder
 );
+
+
+// ==========================================
+// GET MY ORDERS
+// ==========================================
 
 router.get(
     "/get-my-order",
@@ -33,18 +38,32 @@ router.get(
     getMyOrder
 );
 
+
+// ==========================================
+// GET SINGLE ORDER
+// ==========================================
+
 router.get(
     "/get-single-order/:orderId",
     authMiddleware,
     getSingleOrder
 );
 
+
+// ==========================================
+// UPDATE ORDER STATUS
+// ==========================================
+
 router.put(
     "/update-order/:orderId/status",
     authMiddleware,
-    adminMiddleware,
     updateOrderStatus
 );
+
+
+// ==========================================
+// CANCEL ORDER
+// ==========================================
 
 router.delete(
     "/cancel-order/:orderId",

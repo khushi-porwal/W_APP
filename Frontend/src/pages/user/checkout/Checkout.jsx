@@ -3,7 +3,6 @@ import {
     Check,
     MapPin,
     Plus,
-    ShoppingBag,
     Truck,
     X,
 } from "lucide-react";
@@ -104,8 +103,10 @@ function Checkout() {
     const [couponCode, setCouponCode] =
         useState("");
 
-    const [placingOrder, setPlacingOrder] =
-        useState(false);
+    const [
+        placingOrder,
+        setPlacingOrder,
+    ] = useState(false);
 
 
     // ==========================================
@@ -129,6 +130,11 @@ function Checkout() {
 
             setAddresses(addressList);
 
+
+            // ==================================
+            // SELECT DEFAULT ADDRESS
+            // ==================================
+
             const defaultAddress =
                 addressList.find(
                     (address) =>
@@ -146,16 +152,23 @@ function Checkout() {
                     addressList[0]._id
                 );
             }
+
         } catch (error) {
             console.error(
                 "FETCH ADDRESS ERROR:",
                 error
             );
 
+            console.log(
+                "ADDRESS ERROR RESPONSE:",
+                error.response?.data
+            );
+
             toast.error(
                 error.response?.data?.message ||
-                    "Failed to fetch addresses"
+                "Failed to fetch addresses"
             );
+
         } finally {
             setAddressLoading(false);
         }
@@ -163,7 +176,7 @@ function Checkout() {
 
 
     // ==========================================
-    // FETCH ON PAGE LOAD
+    // FETCH ADDRESS ON PAGE LOAD
     // ==========================================
 
     useEffect(() => {
@@ -181,15 +194,17 @@ function Checkout() {
             value,
         } = event.target;
 
-        setAddressForm((previousForm) => ({
-            ...previousForm,
-            [name]: value,
-        }));
+        setAddressForm(
+            (previousForm) => ({
+                ...previousForm,
+                [name]: value,
+            })
+        );
     };
 
 
     // ==========================================
-    // ADD NEW ADDRESS
+    // ADD ADDRESS
     // ==========================================
 
     const handleAddAddress = async (
@@ -207,6 +222,11 @@ function Checkout() {
             country,
         } = addressForm;
 
+
+        // ======================================
+        // VALIDATE EMPTY FIELDS
+        // ======================================
+
         if (
             !fullName.trim() ||
             !phone.trim() ||
@@ -223,6 +243,11 @@ function Checkout() {
             return;
         }
 
+
+        // ======================================
+        // VALIDATE PHONE
+        // ======================================
+
         if (!/^[0-9]{10}$/.test(phone)) {
             toast.error(
                 "Phone number must contain 10 digits"
@@ -230,6 +255,11 @@ function Checkout() {
 
             return;
         }
+
+
+        // ======================================
+        // VALIDATE PINCODE
+        // ======================================
 
         if (!/^[0-9]{6}$/.test(pincode)) {
             toast.error(
@@ -239,20 +269,35 @@ function Checkout() {
             return;
         }
 
+
         try {
             setAddingAddress(true);
 
-            const response = await addAddress(
-                addressForm
+            const response =
+                await addAddress(addressForm);
+
+            console.log(
+                "ADD ADDRESS RESPONSE:",
+                response
             );
 
             toast.success(
-                response.message ||
-                    "Address added successfully"
+                response?.message ||
+                "Address added successfully"
             );
 
-            const newAddress =
-                response?.data;
+
+            // ==================================
+            // GET NEW ADDRESS ID
+            // ==================================
+
+            const newAddressId =
+                response?.data?._id;
+
+
+            // ==================================
+            // RESET FORM
+            // ==================================
 
             setAddressForm(
                 initialAddressForm
@@ -260,13 +305,24 @@ function Checkout() {
 
             setShowAddressForm(false);
 
+
+            // ==================================
+            // FETCH UPDATED ADDRESS LIST
+            // ==================================
+
             await fetchAddresses();
 
-            if (newAddress?._id) {
+
+            // ==================================
+            // SELECT NEW ADDRESS
+            // ==================================
+
+            if (newAddressId) {
                 setSelectedAddress(
-                    newAddress._id
+                    newAddressId
                 );
             }
+
         } catch (error) {
             console.error(
                 "ADD ADDRESS ERROR:",
@@ -275,8 +331,9 @@ function Checkout() {
 
             toast.error(
                 error.response?.data?.message ||
-                    "Failed to add address"
+                "Failed to add address"
             );
+
         } finally {
             setAddingAddress(false);
         }
@@ -288,6 +345,11 @@ function Checkout() {
     // ==========================================
 
     const handlePlaceOrder = async () => {
+
+        // ======================================
+        // VALIDATE ADDRESS
+        // ======================================
+
         if (!selectedAddress) {
             toast.error(
                 "Please select a delivery address"
@@ -296,7 +358,12 @@ function Checkout() {
             return;
         }
 
-        if (cartItems.length === 0) {
+
+        // ======================================
+        // VALIDATE CART
+        // ======================================
+
+        if (!cartItems?.length) {
             toast.error(
                 "Your cart is empty"
             );
@@ -304,13 +371,24 @@ function Checkout() {
             return;
         }
 
+
         try {
             setPlacingOrder(true);
+
+
+            // ==================================
+            // PREPARE ORDER DATA
+            // ==================================
 
             const orderData = {
                 address: selectedAddress,
                 paymentMethod,
             };
+
+
+            // ==================================
+            // ADD COUPON IF AVAILABLE
+            // ==================================
 
             if (couponCode.trim()) {
                 orderData.couponCode =
@@ -319,40 +397,105 @@ function Checkout() {
                         .toUpperCase();
             }
 
+
             console.log(
                 "ORDER DATA:",
                 orderData
             );
 
-            const response = await placeOrder(
-                orderData
-            );
+
+            // ==================================
+            // PLACE ORDER API
+            // ==================================
+
+            const response =
+                await placeOrder(orderData);
+
 
             console.log(
                 "PLACE ORDER RESPONSE:",
                 response
             );
 
-            toast.success(
-                response.message ||
-                    "Order placed successfully"
+            console.log(
+                "PLACE ORDER DATA:",
+                response?.data
             );
+
+
+            // ==================================
+            // GET ORDER ID SAFELY
+            // ==================================
+
+            const orderId =
+                response?.data?._id ||
+                response?.data?.order?._id;
+
+
+            console.log(
+                "FINAL ORDER ID:",
+                orderId
+            );
+
+
+            // ==================================
+            // VALIDATE ORDER ID
+            // ==================================
+
+            if (!orderId) {
+                console.error(
+                    "ORDER ID NOT FOUND:",
+                    response
+                );
+
+                throw new Error(
+                    "Order ID not found in server response"
+                );
+            }
+
+
+            // ==================================
+            // SUCCESS MESSAGE
+            // ==================================
+
+            toast.success(
+                response?.message ||
+                "Order placed successfully"
+            );
+
+
+            // ==================================
+            // REFRESH CART
+            // ==================================
 
             await fetchCart();
 
+
+            // ==================================
+            // NAVIGATE TO SUCCESS PAGE
+            // ==================================
+
             navigate(
-                `/order-success/${response.data._id}`
+                `/order-success/${orderId}`
             );
+
         } catch (error) {
             console.error(
                 "PLACE ORDER ERROR:",
                 error
             );
 
+            console.log(
+                "PLACE ORDER ERROR RESPONSE:",
+                error.response?.data
+            );
+
             toast.error(
                 error.response?.data?.message ||
-                    "Failed to place order"
+                error.message ||
+                "Failed to place order"
             );
+
         } finally {
             setPlacingOrder(false);
         }
@@ -371,7 +514,7 @@ function Checkout() {
                 currency: "INR",
                 maximumFractionDigits: 0,
             }
-        ).format(price);
+        ).format(price || 0);
     };
 
 
@@ -381,6 +524,9 @@ function Checkout() {
 
             <main className="min-h-screen bg-slate-50">
                 <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+
+                    {/* BACK BUTTON */}
+
                     <Link
                         to="/cart"
                         className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
@@ -390,6 +536,8 @@ function Checkout() {
                         Back to cart
                     </Link>
 
+
+                    {/* PAGE HEADER */}
 
                     <div className="mt-8">
                         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -408,22 +556,28 @@ function Checkout() {
 
 
                     <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+
                         <div className="space-y-6">
-                            {/* ADDRESS SECTION */}
+
+                            {/* ========================= */}
+                            {/* DELIVERY ADDRESS */}
+                            {/* ========================= */}
 
                             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+
                                 <div className="flex items-center justify-between gap-4">
+
                                     <div>
                                         <h2 className="text-xl font-bold text-slate-950">
                                             Delivery address
                                         </h2>
 
                                         <p className="mt-1 text-sm text-slate-500">
-                                            Select where you
-                                            want your order
-                                            delivered.
+                                            Select your delivery
+                                            address.
                                         </p>
                                     </div>
+
 
                                     <button
                                         type="button"
@@ -438,25 +592,33 @@ function Checkout() {
 
                                         Add address
                                     </button>
+
                                 </div>
 
 
+                                {/* ADDRESS LOADING */}
+
                                 {addressLoading ? (
+
                                     <div className="mt-6 space-y-3">
+
                                         {[1, 2].map(
                                             (item) => (
                                                 <div
-                                                    key={
-                                                        item
-                                                    }
+                                                    key={item}
                                                     className="h-36 animate-pulse rounded-2xl bg-slate-100"
                                                 />
                                             )
                                         )}
+
                                     </div>
-                                ) : addresses.length ===
-                                  0 ? (
+
+                                ) : addresses.length === 0 ? (
+
+                                    /* NO ADDRESS */
+
                                     <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-8 text-center">
+
                                         <MapPin
                                             size={30}
                                             className="mx-auto text-slate-400"
@@ -470,11 +632,18 @@ function Checkout() {
                                             Add a delivery
                                             address to continue.
                                         </p>
+
                                     </div>
+
                                 ) : (
+
+                                    /* ADDRESS LIST */
+
                                     <div className="mt-6 grid gap-4 sm:grid-cols-2">
+
                                         {addresses.map(
                                             (address) => {
+
                                                 const isSelected =
                                                     selectedAddress ===
                                                     address._id;
@@ -496,21 +665,20 @@ function Checkout() {
                                                                 : "border-slate-200 hover:border-slate-400"
                                                         }`}
                                                     >
+
                                                         {isSelected && (
                                                             <span className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-slate-950 text-white">
                                                                 <Check
-                                                                    size={
-                                                                        14
-                                                                    }
+                                                                    size={14}
                                                                 />
                                                             </span>
                                                         )}
 
+
                                                         <div className="flex items-center gap-2">
+
                                                             <MapPin
-                                                                size={
-                                                                    18
-                                                                }
+                                                                size={18}
                                                                 className="text-slate-500"
                                                             />
 
@@ -519,7 +687,9 @@ function Checkout() {
                                                                     address.fullName
                                                                 }
                                                             </p>
+
                                                         </div>
+
 
                                                         {address.isDefault && (
                                                             <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
@@ -527,10 +697,12 @@ function Checkout() {
                                                             </span>
                                                         )}
 
+
                                                         <p className="mt-4 text-sm leading-6 text-slate-600">
                                                             {
                                                                 address.street
                                                             }
+
                                                             <br />
 
                                                             {
@@ -539,11 +711,12 @@ function Checkout() {
                                                             ,{" "}
                                                             {
                                                                 address.state
-                                                            }{" "}
-                                                            -{" "}
+                                                            }
+                                                            {" - "}
                                                             {
                                                                 address.pincode
                                                             }
+
                                                             <br />
 
                                                             {
@@ -551,29 +724,41 @@ function Checkout() {
                                                             }
                                                         </p>
 
+
                                                         <p className="mt-3 text-sm font-medium text-slate-700">
                                                             {
                                                                 address.phone
                                                             }
                                                         </p>
+
                                                     </button>
                                                 );
                                             }
                                         )}
+
                                     </div>
                                 )}
+
                             </section>
 
 
+                            {/* ========================= */}
                             {/* PAYMENT METHOD */}
+                            {/* ========================= */}
 
                             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+
                                 <h2 className="text-xl font-bold text-slate-950">
                                     Payment method
                                 </h2>
 
+
                                 <div className="mt-6 space-y-3">
+
+                                    {/* COD */}
+
                                     <label className="flex cursor-pointer items-center gap-4 rounded-2xl border border-slate-200 p-5">
+
                                         <input
                                             type="radio"
                                             name="paymentMethod"
@@ -582,21 +767,17 @@ function Checkout() {
                                                 paymentMethod ===
                                                 "CashOnDelivery"
                                             }
-                                            onChange={(
-                                                event
-                                            ) =>
+                                            onChange={(event) =>
                                                 setPaymentMethod(
-                                                    event
-                                                        .target
-                                                        .value
+                                                    event.target.value
                                                 )
                                             }
                                         />
 
+
                                         <div>
                                             <p className="font-semibold text-slate-950">
-                                                Cash on
-                                                Delivery
+                                                Cash on Delivery
                                             </p>
 
                                             <p className="mt-1 text-sm text-slate-500">
@@ -604,9 +785,14 @@ function Checkout() {
                                                 order arrives.
                                             </p>
                                         </div>
+
                                     </label>
 
+
+                                    {/* RAZORPAY */}
+
                                     <label className="flex cursor-pointer items-center gap-4 rounded-2xl border border-slate-200 p-5">
+
                                         <input
                                             type="radio"
                                             name="paymentMethod"
@@ -615,16 +801,13 @@ function Checkout() {
                                                 paymentMethod ===
                                                 "Razorpay"
                                             }
-                                            onChange={(
-                                                event
-                                            ) =>
+                                            onChange={(event) =>
                                                 setPaymentMethod(
-                                                    event
-                                                        .target
-                                                        .value
+                                                    event.target.value
                                                 )
                                             }
                                         />
+
 
                                         <div>
                                             <p className="font-semibold text-slate-950">
@@ -636,14 +819,20 @@ function Checkout() {
                                                 using Razorpay.
                                             </p>
                                         </div>
+
                                     </label>
+
                                 </div>
+
                             </section>
 
 
+                            {/* ========================= */}
                             {/* COUPON */}
+                            {/* ========================= */}
 
                             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+
                                 <h2 className="text-xl font-bold text-slate-950">
                                     Coupon code
                                 </h2>
@@ -652,6 +841,7 @@ function Checkout() {
                                     Have a coupon? Add it to
                                     your order.
                                 </p>
+
 
                                 <input
                                     type="text"
@@ -664,53 +854,71 @@ function Checkout() {
                                     placeholder="Enter coupon code"
                                     className="mt-5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-950"
                                 />
+
                             </section>
+
                         </div>
 
 
+                        {/* ============================= */}
                         {/* ORDER SUMMARY */}
+                        {/* ============================= */}
 
                         <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-28">
+
                             <h2 className="text-xl font-bold text-slate-950">
                                 Order summary
                             </h2>
 
+
                             <div className="mt-6 space-y-4">
-                                {cartItems.map(
+
+                                {cartItems?.map(
                                     (cartItem) => (
+
                                         <div
-                                            key={
-                                                cartItem._id
-                                            }
+                                            key={cartItem._id}
                                             className="flex items-center justify-between gap-4 text-sm"
                                         >
+
                                             <span className="line-clamp-1 text-slate-600">
                                                 {
                                                     cartItem
                                                         .product
-                                                        .name
-                                                }{" "}
-                                                ×{" "}
+                                                        ?.name
+                                                }
+                                                {" × "}
                                                 {
                                                     cartItem.quantity
                                                 }
                                             </span>
 
+
                                             <span className="shrink-0 font-semibold text-slate-950">
+
                                                 {formatPrice(
-                                                    cartItem
-                                                        .product
-                                                        .price *
-                                                        cartItem.quantity
+                                                    (
+                                                        cartItem
+                                                            .product
+                                                            ?.price ||
+                                                        0
+                                                    ) *
+                                                    cartItem.quantity
                                                 )}
+
                                             </span>
+
                                         </div>
                                     )
                                 )}
+
                             </div>
 
+
                             <div className="mt-6 border-t border-slate-200 pt-5">
+
                                 <div className="flex justify-between text-sm">
+
                                     <span className="text-slate-600">
                                         Items
                                     </span>
@@ -718,9 +926,12 @@ function Checkout() {
                                     <span className="font-semibold">
                                         {totalItems}
                                     </span>
+
                                 </div>
 
+
                                 <div className="mt-4 flex justify-between text-sm">
+
                                     <span className="text-slate-600">
                                         Subtotal
                                     </span>
@@ -730,9 +941,12 @@ function Checkout() {
                                             totalAmount
                                         )}
                                     </span>
+
                                 </div>
 
+
                                 <div className="mt-4 flex justify-between text-sm">
+
                                     <span className="text-slate-600">
                                         Delivery
                                     </span>
@@ -740,9 +954,12 @@ function Checkout() {
                                     <span className="font-semibold text-emerald-600">
                                         Free
                                     </span>
+
                                 </div>
 
+
                                 <div className="mt-5 flex items-center justify-between border-t border-slate-200 pt-5">
+
                                     <span className="font-bold">
                                         Total
                                     </span>
@@ -752,51 +969,64 @@ function Checkout() {
                                             totalAmount
                                         )}
                                     </span>
+
                                 </div>
+
                             </div>
 
+
                             <div className="mt-6 flex gap-3 rounded-2xl bg-slate-50 p-4">
+
                                 <Truck
                                     size={20}
                                     className="shrink-0 text-slate-600"
                                 />
 
                                 <p className="text-xs leading-5 text-slate-500">
-                                    Your final amount will be
-                                    securely validated by the
-                                    server before the order is
-                                    created.
+                                    Your final amount is
+                                    validated by the server
+                                    before creating the order.
                                 </p>
+
                             </div>
+
 
                             <button
                                 type="button"
-                                onClick={
-                                    handlePlaceOrder
-                                }
+                                onClick={handlePlaceOrder}
                                 disabled={
                                     placingOrder ||
                                     !selectedAddress
                                 }
                                 className="mt-6 w-full rounded-xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >
+
                                 {placingOrder
                                     ? "Placing order..."
                                     : `Place order • ${formatPrice(
-                                          totalAmount
-                                      )}`}
+                                        totalAmount
+                                    )}`}
+
                             </button>
+
                         </aside>
+
                     </div>
                 </div>
 
 
+                {/* ============================= */}
                 {/* ADD ADDRESS MODAL */}
+                {/* ============================= */}
 
                 {showAddressForm && (
+
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-5 backdrop-blur-sm">
+
                         <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+
                             <div className="flex items-start justify-between gap-4">
+
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-950">
                                         Add delivery address
@@ -807,6 +1037,7 @@ function Checkout() {
                                         details.
                                     </p>
                                 </div>
+
 
                                 <button
                                     type="button"
@@ -819,14 +1050,15 @@ function Checkout() {
                                 >
                                     <X size={21} />
                                 </button>
+
                             </div>
 
+
                             <form
-                                onSubmit={
-                                    handleAddAddress
-                                }
+                                onSubmit={handleAddAddress}
                                 className="mt-7 grid gap-5 sm:grid-cols-2"
                             >
+
                                 {[
                                     [
                                         "fullName",
@@ -854,10 +1086,13 @@ function Checkout() {
                                     ],
                                 ].map(
                                     ([name, label]) => (
+
                                         <div key={name}>
+
                                             <label className="text-sm font-semibold text-slate-700">
                                                 {label}
                                             </label>
+
 
                                             <input
                                                 type="text"
@@ -872,14 +1107,18 @@ function Checkout() {
                                                 }
                                                 className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-950"
                                             />
+
                                         </div>
                                     )
                                 )}
 
+
                                 <div className="sm:col-span-2">
+
                                     <label className="text-sm font-semibold text-slate-700">
                                         Street address
                                     </label>
+
 
                                     <textarea
                                         name="street"
@@ -892,24 +1131,33 @@ function Checkout() {
                                         rows={3}
                                         className="mt-2 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-950"
                                     />
+
                                 </div>
+
 
                                 <button
                                     type="submit"
                                     disabled={addingAddress}
-                                    className="sm:col-span-2 rounded-xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                                    className="rounded-xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50 sm:col-span-2"
                                 >
+
                                     {addingAddress
                                         ? "Adding address..."
                                         : "Save address"}
+
                                 </button>
+
                             </form>
+
                         </div>
+
                     </div>
                 )}
+
             </main>
         </>
     );
 }
+
 
 export default Checkout;

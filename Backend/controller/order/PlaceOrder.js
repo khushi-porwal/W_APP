@@ -276,58 +276,93 @@ const getMyOrder = asyncHandler(async (req, res) => {
 
 
 const getSingleOrder = asyncHandler(async (req, res) => {
-  const orderId = req.params.id;
+    // ==========================================
+    // GET ORDER ID FROM PARAMS
+    // ==========================================
 
-  // ==========================
-  // Validate Order ID
-  // ==========================
+    const { orderId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(orderId)) {
-    throw new ApiError(
-      400,
-      "Invalid Order ID"
+    const userId = req.user.id;
+
+    console.log(
+        "REQ PARAMS:",
+        req.params
     );
-  }
 
-  // ==========================
-  // Find Order
-  // ==========================
-
-  const order = await orderModel
-    .findOne({
-      _id: orderId,
-      user: req.user.id,
-    })
-    .populate("user", "name email")
-    .populate("items.product")
-    .populate("address");
-
-  // ==========================
-  // Validate Order
-  // ==========================
-
-  if (!order) {
-    throw new ApiError(
-      404,
-      "Order not found"
+    console.log(
+        "ORDER ID RECEIVED:",
+        orderId
     );
-  }
 
-  // ==========================
-  // Send Response
-  // ==========================
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        order,
-        "Order fetched successfully"
-      )
+    console.log(
+        "ORDER ID TYPE:",
+        typeof orderId
     );
+
+
+    // ==========================================
+    // VALIDATE ORDER ID
+    // ==========================================
+
+    if (
+        !orderId ||
+        !mongoose.Types.ObjectId.isValid(orderId)
+    ) {
+        throw new ApiError(
+            400,
+            "Invalid Order ID"
+        );
+    }
+
+
+    // ==========================================
+    // FIND ORDER
+    // ==========================================
+
+    const order = await orderModel
+        .findOne({
+            _id: orderId,
+            user: userId,
+        })
+        .populate(
+            "items.product",
+            "name price image images category"
+        )
+        .populate(
+            "address"
+        )
+        .populate(
+            "user",
+            "name email"
+        );
+
+
+    // ==========================================
+    // ORDER NOT FOUND
+    // ==========================================
+
+    if (!order) {
+        throw new ApiError(
+            404,
+            "Order not found"
+        );
+    }
+
+
+    // ==========================================
+    // SEND RESPONSE
+    // ==========================================
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                order,
+                "Order fetched successfully"
+            )
+        );
 });
-
 
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const orderId = req.params.id;
