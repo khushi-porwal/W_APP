@@ -17,7 +17,7 @@ const upload = require("../../middleware/upload");
 router.post(
     "/create-product",
     authMiddleware,
-    adminMiddleware,
+    // adminMiddleware,
     upload.single("image"),
     createProduct
 );
@@ -35,10 +35,10 @@ router.get(
 router.put(
     "/update-product/:id",
     authMiddleware,
-    adminMiddleware,
+    // adminMiddleware,
+    upload.single("image"),
     updateProduct
 );
-
 router.delete(
     "/delete-product/:id",
     authMiddleware,

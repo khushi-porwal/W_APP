@@ -37,7 +37,8 @@ const createProduct = asyncHandler(async (req, res) => {
         );
     }
 
-    const images = [req.file.path];
+    console.log("REQ FILE:", req.file);
+    const image = req.file.path;
 
     // Check Existing Product
     const existingProduct = await productModel.findOne({
@@ -74,7 +75,7 @@ const createProduct = asyncHandler(async (req, res) => {
         description: description.trim(),
         category,
         stock: Number(stock),
-        images
+        image
     });
 
     return res
@@ -271,7 +272,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 
     // Update Image
     if (req.file) {
-        updateData.images = [req.file.path];
+        updateData.image = req.file.path;
     }
 
     // Update Product

@@ -476,7 +476,7 @@ function Checkout() {
             // ==================================
 
             navigate(
-                `/order-success/${orderId}`
+                `/order/${orderId}`
             );
 
         } catch (error) {
