@@ -8,7 +8,7 @@ import Cart from "../pages/user/cart/Cart";
 import Home from "../pages/user/Home";
 import Profile from "../pages/user/Profile";
 import Checkout from "../pages/user/checkout/Checkout";
-import OrderSuccess from "../pages/user/order/OrderSuccess";
+import OrderDetails from "../pages/user/order/OrderDetails";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRoutes() {
@@ -27,13 +27,13 @@ function AppRoutes() {
         }
       />
       <Route
-    path="/orders"
-    element={
-        <ProtectedRoute>
+        path="/orders"
+        element={
+          <ProtectedRoute>
             <MyOrders />
-        </ProtectedRoute>
-    }
-/>
+          </ProtectedRoute>
+        }
+      />
       <Route path="/signup" element={<Signup />} />
       <Route
         path="/cart"
@@ -46,13 +46,13 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
 
       <Route
-    path="/order-success/:orderId"
-    element={
-        <ProtectedRoute>
-            <OrderSuccess />
-        </ProtectedRoute>
-    }
-/>
+        path="/order/:orderId"
+        element={
+          <ProtectedRoute>
+            <OrderDetails />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/profile"
         element={
