@@ -1,174 +1,172 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
+
 import Navbar from "../../../components/common/Navbar";
-import { getAllProducts } from "../../../services/productService";
+
+import {
+  getAllProducts,
+  deleteProduct,
+} from "../../../services/productService";
 
 function AllProduct() {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    // ==========================================
-    // FETCH PRODUCTS
-    // ==========================================
+  // ==========================================
+  // FETCH PRODUCTS
+  // ==========================================
 
-    const fetchProducts = async () => {
-        try {
-            setLoading(true);
+  const fetchProducts = async () => {
 
-            const response = await getAllProducts();
+    try {
 
-            console.log("Products:", response);
+        setLoading(true);
 
-            setProducts(response.data.products || []);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        const response = await getAllProducts();
 
-    useEffect(() => {
-        fetchProducts();
-    }, []);
+        setProducts(response.data.products || []);
 
-    return (
-        <>
-            <Navbar />
+    } catch (error) {
 
-            <main className="min-h-screen bg-slate-100 py-10">
-                <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+        console.error(error);
 
-                    {/* Header */}
+        toast.error(
 
-                    <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-3xl font-bold">
-                            All Products
-                        </h1>
+            error.response?.data?.message ||
 
-                        <Link
-                            to="/admin/add-product"
-                            className="bg-slate-900 text-white px-5 py-3 rounded-xl hover:bg-slate-800 transition"
-                        >
-                            + Add Product
-                        </Link>
-                    </div>
+            "Failed to fetch products"
 
-                    {/* Loading */}
+        );
 
-                    {loading ? (
-                        <div className="text-center py-20 text-xl font-semibold">
-                            Loading Products...
-                        </div>
-                    ) : products.length === 0 ? (
-                        <div className="text-center py-20 text-slate-500 text-lg">
-                            No Products Found
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
+    } finally {
 
-                            <table className="w-full border-collapse">
+        setLoading(false);
 
-                                <thead>
+    }
 
-                                    <tr className="bg-slate-900 text-white">
+};
 
-                                        <th className="p-4 text-left">
-                                            Image
-                                        </th>
-
-                                        <th className="p-4 text-left">
-                                            Product
-                                        </th>
-
-                                        <th className="p-4 text-left">
-                                            Category
-                                        </th>
-
-                                        <th className="p-4 text-left">
-                                            Price
-                                        </th>
-
-                                        <th className="p-4 text-left">
-                                            Stock
-                                        </th>
-
-                                        <th className="p-4 text-center">
-                                            Actions
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody>
-
-                                    {products.map((product) => (
-
-                                        <tr
-                                            key={product._id}
-                                            className="border-b hover:bg-slate-50"
-                                        >
-
-                                            <td className="p-4">
-                                                <img
-                                                    src={product.image}
-                                                    alt={product.name}
-                                                    className="w-20 h-20 rounded-lg object-cover"
-                                                />
-                                            </td>
-
-                                            <td className="p-4 font-semibold">
-                                                {product.name}
-                                            </td>
-
-                                            <td className="p-4">
-                                                {product.category}
-                                            </td>
-
-                                            <td className="p-4">
-                                                ₹{product.price}
-                                            </td>
-
-                                            <td className="p-4">
-                                                {product.stock}
-                                            </td>
-
-                                            <td className="p-4">
-
-                                                <div className="flex justify-center gap-3">
-
-                                                    <Link
-    to={`/admin/edit-product/${product._id}`}
-    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
->
-    Edit
-</Link>
-
-                                                    <button
-                                                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                                                    >
-                                                        Delete
-                                                    </button>
-
-                                                </div>
-
-                                            </td>
-
-                                        </tr>
-
-                                    ))}
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
-                    )}
-
-                </div>
-            </main>
-        </>
+  const handleDelete = async (productId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this product?",
     );
+
+    if (!confirmDelete) return;
+
+    try {
+      const response = await deleteProduct(productId);
+
+      toast.success(response.message);
+
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+
+      toast.error(error.response?.data?.message || "Failed to delete product");
+    }
+  };
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  return (
+    <>
+      <Navbar />
+
+      <main className="min-h-screen bg-slate-100 py-10">
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+          {/* Header */}
+
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">All Products</h1>
+
+            <Link
+              to="/admin/add-product"
+              className="bg-slate-900 text-white px-5 py-3 rounded-xl hover:bg-slate-800 transition"
+            >
+              + Add Product
+            </Link>
+          </div>
+
+          {/* Loading */}
+
+          {loading ? (
+            <div className="text-center py-20 text-xl font-semibold">
+              Loading Products...
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20 text-slate-500 text-lg">
+              No Products Found
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 text-white">
+                    <th className="p-4 text-left">Image</th>
+
+                    <th className="p-4 text-left">Product</th>
+
+                    <th className="p-4 text-left">Category</th>
+
+                    <th className="p-4 text-left">Price</th>
+
+                    <th className="p-4 text-left">Stock</th>
+
+                    <th className="p-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {products.map((product) => (
+                    <tr
+                      key={product._id}
+                      className="border-b hover:bg-slate-50"
+                    >
+                      <td className="p-4">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-20 h-20 rounded-lg object-cover"
+                        />
+                      </td>
+
+                      <td className="p-4 font-semibold">{product.name}</td>
+
+                      <td className="p-4">{product.category}</td>
+
+                      <td className="p-4">₹{product.price}</td>
+
+                      <td className="p-4">{product.stock}</td>
+
+                      <td className="p-4">
+                        <div className="flex justify-center gap-3">
+                          <Link
+                            to={`/admin/edit-product/${product._id}`}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                          >
+                            Edit
+                          </Link>
+
+                          <button
+                            onClick={() => handleDelete(product._id)}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+    </>
+  );
 }
 
 export default AllProduct;

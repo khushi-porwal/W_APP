@@ -5,13 +5,17 @@ const router = express.Router();
 const authMiddleware = require(
     "../../middleware/authMiddleware"
 );
-
+const adminMiddleware = require(
+    "../../middleware/adminMiddleware"
+)
 const {
     placeOrder,
     getMyOrder,
     getSingleOrder,
     updateOrderStatus,
     cancelOrder,
+    getAllOrders,
+    getAdminSingleOrder
 } = require(
     "../../controller/order/PlaceOrder"
 );
@@ -54,12 +58,20 @@ router.get(
 // UPDATE ORDER STATUS
 // ==========================================
 
+// router.put(
+//     "/update-order/:orderId/status",
+//     authMiddleware,
+//     adminMiddleware,
+//     updateOrderStatus
+// );
+
+
 router.put(
-    "/update-order/:orderId/status",
+    "/admin/orders/:orderId/status",
     authMiddleware,
+    adminMiddleware,
     updateOrderStatus
 );
-
 
 // ==========================================
 // CANCEL ORDER
@@ -71,5 +83,17 @@ router.delete(
     cancelOrder
 );
 
+router.get(
+    "/admin/orders",
+    authMiddleware,
+    adminMiddleware,
+    getAllOrders
+);
 
+router.get(
+    "/admin/orders/:orderId",
+    authMiddleware,
+    adminMiddleware,
+    getAdminSingleOrder
+)
 module.exports = router;

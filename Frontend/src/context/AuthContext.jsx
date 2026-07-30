@@ -16,11 +16,13 @@ function AuthProvider({ children }) {
     const token = localStorage.getItem("token");
 
     const fetchProfile = async () => {
-        try {
-            const response = await api.get("/profile");
+    try {
+        const response = await api.get("/profile");
 
-            setUser(response.data.data);
-        } catch (error) {
+        console.log(response.data.data);
+
+        setUser(response.data.data);
+    } catch (error) {
             localStorage.removeItem("token");
 
             setUser(null);

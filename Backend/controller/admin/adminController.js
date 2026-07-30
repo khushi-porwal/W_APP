@@ -817,19 +817,80 @@ const getBestCustomer = asyncHandler(async (req, res) => {
     );
 });
 
+// const getDashboardStats = asyncHandler(async (req, res) => {
 
+//     // ==========================
+//     // Total Users
+//     // ==========================
+
+//     const totalUsers = await userModel.countDocuments();
+
+//     // ==========================
+//     // Total Products
+//     // ==========================
+
+//     const totalProducts = await productModel.countDocuments();
+
+//     // ==========================
+//     // Total Orders
+//     // ==========================
+
+//     const totalOrders = await orderModel.countDocuments();
+
+//     // ==========================
+//     // Total Revenue
+//     // ==========================
+
+//     const revenue = await orderModel.aggregate([
+//         {
+//             $match: {
+//                 paymentStatus: "Paid",
+//             },
+//         },
+//         {
+//             $group: {
+//                 _id: null,
+//                 totalRevenue: {
+//                     $sum: "$totalAmount",
+//                 },
+//             },
+//         },
+//     ]);
+
+//     const totalRevenue =
+//         revenue.length > 0
+//             ? revenue[0].totalRevenue
+//             : 0;
+
+//     // ==========================
+//     // Send Response
+//     // ==========================
+
+//     return res.status(200).json(
+//         new ApiResponse(
+//             200,
+//             {
+//                 totalUsers,
+//                 totalProducts,
+//                 totalOrders,
+//                 totalRevenue,
+//             },
+//             "Dashboard statistics fetched successfully"
+//         )
+//     );
+// });
 
 module.exports = {
   getAllOrder,
   updateOrderStatus,
   getAllUser,
-  getDashboardStats,
   getTopSellingProducts,
   getMonthlyRevenue,
   getTopCategory,
   getLowStockProducts,
   getRecentOrder,
   getOrderByStatus,
+  getDashboardStats,
   getBestCustomer,
 };
 

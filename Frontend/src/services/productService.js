@@ -55,6 +55,16 @@ export const updateProduct = async (
 
     return response.data;
 };
+
+export const deleteProduct = async (productId) => {
+
+    const response = await api.delete(
+        `/delete-product/${productId}`
+    );
+
+    return response.data;
+};
+
 //Interview answer
 
 // “I use Axios query params to send search, 

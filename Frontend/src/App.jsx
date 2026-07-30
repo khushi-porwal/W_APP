@@ -1,8 +1,7 @@
 import { Toaster } from "react-hot-toast";
 
 import AppRoutes from "./routes/AppRoutes";
-import AdminRoutes from "./routes/AdminRoute";
-
+import AdminRoutes from "./routes/AdminRoutes"
 function App() {
     return (
         <>

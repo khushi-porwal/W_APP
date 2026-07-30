@@ -74,10 +74,38 @@ export const updateOrderStatus = async (
     status
 ) => {
     const response = await api.put(
-        `/update-order/${orderId}/status`,
+        `/admin/orders/${orderId}/status`,
         {
             status,
         }
+    );
+
+    return response.data;
+};
+
+// ==========================================
+// ADMIN - GET ALL ORDERS
+// ==========================================
+
+export const getAllOrders = async () => {
+
+    const response = await api.get(
+        "/admin/orders"
+    );
+
+    return response.data;
+};
+
+// ==========================================
+// ADMIN - GET SINGLE ORDER
+// ==========================================
+
+export const getAdminSingleOrder = async (
+    orderId
+) => {
+
+    const response = await api.get(
+        `/admin/orders/${orderId}`
     );
 
     return response.data;

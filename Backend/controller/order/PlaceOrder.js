@@ -365,7 +365,7 @@ const getSingleOrder = asyncHandler(async (req, res) => {
 });
 
 const updateOrderStatus = asyncHandler(async (req, res) => {
-  const orderId = req.params.id;
+  const orderId = req.params.orderId;
 
   // ==========================
   // Validate Order ID
@@ -591,6 +591,56 @@ const cancelOrder = asyncHandler(async (req, res) => {
     );
 });
 
+const getAllOrders = asyncHandler(async (req, res) => {
+
+    const orders = await orderModel
+        .find()
+        .sort({ createdAt: -1 })
+        .populate("user", "name email")
+        .populate("items.product", "name price image")
+        .populate("address");
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                totalOrders: orders.length,
+                orders
+            },
+            "All orders fetched successfully"
+        )
+    );
+
+});
+
+
+const getAdminSingleOrder = asyncHandler(async (req, res) => {
+
+    const { orderId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        throw new ApiError(400, "Invalid Order ID");
+    }
+
+    const order = await orderModel
+        .findById(orderId)
+        .populate("user", "name email")
+        .populate("items.product", "name image price")
+        .populate("address");
+
+    if (!order) {
+        throw new ApiError(404, "Order not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            order,
+            "Order fetched successfully"
+        )
+    );
+
+});
 
 module.exports = {
   placeOrder,
@@ -598,4 +648,6 @@ module.exports = {
   getSingleOrder,
   updateOrderStatus,
   cancelOrder,
+  getAllOrders,
+  getAdminSingleOrder
 };
