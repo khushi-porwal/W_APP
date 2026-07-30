@@ -12,8 +12,18 @@ import EditProduct from "../pages/admin/product/EditProduct";
 import AllOrders from "../pages/admin/order/AllOrders";
 import OrderDetails from "../pages/admin/order/OrderDetails";
 
+import Categories from "../pages/admin/category/Categories"
+
+
 function AdminRoutes() {
+
+    console.log("AdminRoutes Rendered");
+
     return (
+        <>
+            <h1 style={{ color: "red" }}>ADMIN ROUTES LOADED</h1>
+
+           
         <Routes>
 
             <Route
@@ -44,6 +54,10 @@ function AdminRoutes() {
                 />
 
                 <Route
+    path="/admin/categories"
+    element={<Categories />}
+/>
+                <Route
                     path="/admin/edit-product/:id"
                     element={<EditProduct />}
                 />
@@ -63,6 +77,7 @@ function AdminRoutes() {
             </Route>
 
         </Routes>
+        </>
     );
 }
 
