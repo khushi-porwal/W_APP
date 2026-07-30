@@ -8,7 +8,7 @@ import {
     WalletCards,
     TrendingUp,
 } from "lucide-react";
-
+import OrderStatusChart from "../../../components/admin/OrderStatusChart";
 import { getDashboardStats } from "../../../services/adminService";
 import MonthlyRevenueChart from "../../../components/admin/MonthlyRevenueChart";
 function Dashboard() {
@@ -175,7 +175,18 @@ function Dashboard() {
 </div>
 
 {/* Recent Orders */}
-<MonthlyRevenueChart/>
+<div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-8">
+
+    <div className="xl:col-span-2">
+
+        <MonthlyRevenueChart />
+
+    </div>
+
+    <OrderStatusChart />
+
+</div>
+
 <RecentOrdersTable />
 
 

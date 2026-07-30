@@ -16,3 +16,11 @@ export const getMonthlyRevenue = async () => {
     return response.data;
 
 };
+
+export const getOrderStatus = async () => {
+
+    const response = await api.get("/get-order-status");
+
+    return response.data;
+
+};
