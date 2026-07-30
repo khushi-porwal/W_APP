@@ -24,3 +24,35 @@ export const getOrderStatus = async () => {
     return response.data;
 
 };
+
+export const getTopSellingProducts = async () => {
+
+    const response = await api.get("/top-selling-products");
+
+    return response.data;
+
+};
+
+export const getLowStockProducts = async () => {
+
+    const response = await api.get("/low-stock-products");
+
+    return response.data;
+
+};
+
+export const getBestCustomers = async () => {
+
+    const response = await api.get("/get-customers");
+
+    return response.data;
+
+};
+
+export const getTopCategories = async () => {
+
+    const response = await api.get("/top-category");
+
+    return response.data;
+
+};

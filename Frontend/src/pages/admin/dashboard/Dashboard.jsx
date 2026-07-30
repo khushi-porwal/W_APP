@@ -8,6 +8,10 @@ import {
     WalletCards,
     TrendingUp,
 } from "lucide-react";
+import TopCategories from "../../../components/admin/TopCategories";
+import BestCustomers from "../../../components/admin/BestCustomers";
+import LowStockProducts from "../../../components/admin/LowStockProducts";
+import TopSellingProducts from "../../../components/admin/TopSellingProducts";
 import OrderStatusChart from "../../../components/admin/OrderStatusChart";
 import { getDashboardStats } from "../../../services/adminService";
 import MonthlyRevenueChart from "../../../components/admin/MonthlyRevenueChart";
@@ -178,16 +182,30 @@ function Dashboard() {
 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-8">
 
     <div className="xl:col-span-2">
-
         <MonthlyRevenueChart />
-
     </div>
 
     <OrderStatusChart />
 
 </div>
 
+<div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
+
+    <TopSellingProducts />
+
+    <LowStockProducts />
+
+</div>
+
 <RecentOrdersTable />
+
+<div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
+
+    <BestCustomers />
+
+    <TopCategories />
+
+</div>
 
 
         </div>

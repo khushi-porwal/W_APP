@@ -27,6 +27,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^9.0.3",
     "razorpay": "^2.9.6",
+    "slugify": "^1.6.9",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   }

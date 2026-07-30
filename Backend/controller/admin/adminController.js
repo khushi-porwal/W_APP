@@ -360,7 +360,7 @@ const getTopSellingProducts = asyncHandler(async (req, res) => {
       $project: {
         _id: 0,
         name: "$productInfo.name",
-        images: "$productInfo.images",
+        image: "$productInfo.image",
         price: "$productInfo.price",
         totalSold: 1,
       },
@@ -564,16 +564,14 @@ const getLowStockProducts = asyncHandler(async (req, res) => {
   // Get Low Stock Products
   // =========================
 
-  const products = await productModel
+  const LOW_STOCK_LIMIT = 5;
+
+const products = await productModel
     .find({
-      stock: {
-        $lte: 5,
-      },
+        stock: { $lte: LOW_STOCK_LIMIT }
     })
-    .select("name stock category images")
-    .sort({
-      stock: 1,
-    });
+    .select("name stock category image")
+    .sort({ stock: 1 });
 
   // =========================
   // No Low Stock Products
@@ -750,13 +748,18 @@ const getBestCustomer = asyncHandler(async (req, res) => {
       },
     },
     {
-      $group: {
-        _id: "$user",
-        totalSpent: {
-          $sum: "$totalAmount",
-        },
-      },
+  $group: {
+    _id: "$user",
+
+    totalOrders: {
+      $sum: 1,
     },
+
+    totalSpent: {
+      $sum: "$totalAmount",
+    },
+  },
+},
     {
       $sort: {
         totalSpent: -1,
@@ -777,13 +780,14 @@ const getBestCustomer = asyncHandler(async (req, res) => {
       $unwind: "$userInfo",
     },
     {
-      $project: {
-        _id: 0,
-        name: "$userInfo.name",
-        email: "$userInfo.email",
-        totalSpent: 1,
-      },
-    },
+  $project: {
+    _id: 0,
+    name: "$userInfo.name",
+    email: "$userInfo.email",
+    totalOrders: 1,
+    totalSpent: 1,
+  },
+},
   ]);
 
   // =========================
