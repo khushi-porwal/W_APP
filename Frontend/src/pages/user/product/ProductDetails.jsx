@@ -1,361 +1,306 @@
-import {
-  ArrowLeft,
-  Heart,
-  Minus,
-  Plus,
-  ShieldCheck,
-  ShoppingBag,
-  Truck,
-} from "lucide-react";
-import { CartContext } from "../../../context/CartContext";
-import {
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  Link,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
-
+import { useContext, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Heart, Minus, Plus, ShieldCheck, ShoppingBag, Truck, Zap, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
-
-import Navbar from "../../../components/common/Navbar";
-
 import { AuthContext } from "../../../context/AuthContext";
-
-import { getSingleProduct } from "../../../services/productService";
-
-import { addToCart } from "../../../services/cartService";
+import { CartContext } from "../../../context/CartContext";
+import { useWishlist } from "../../../context/WishlistContext";
+import { getSingleProduct, getAllProducts } from "../../../services/productService";
+import ProductCard from "../../../components/product/ProductCard";
 
 function ProductDetails() {
-  const { id } = useParams();
+    const { id } = useParams();
+    const navigate = useNavigate();
 
-  const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
+    const { addToCart } = useContext(CartContext);
+    const { addItemToWishlist, removeItemFromWishlist, isInWishlist } = useWishlist();
 
-  const { user } = useContext(AuthContext);
+    const [product, setProduct] = useState(null);
+    const [relatedProducts, setRelatedProducts] = useState([]);
+    const [quantity, setQuantity] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [addingToCart, setAddingToCart] = useState(false);
 
-const { fetchCart } = useContext(CartContext);
+    const isLiked = product ? isInWishlist(product._id) : false;
 
-  const [product, setProduct] = useState(null);
+    useEffect(() => {
+        const fetchProductData = async () => {
+            try {
+                setLoading(true);
+                const response = await getSingleProduct(id);
+                const prodData = response.data;
+                setProduct(prodData);
 
-  const [quantity, setQuantity] = useState(1);
+                // Fetch related products in same category
+                if (prodData?.category) {
+                    const relRes = await getAllProducts({ category: prodData.category, limit: 4 });
+                    if (relRes?.data?.products) {
+                        setRelatedProducts(relRes.data.products.filter(p => p._id !== id));
+                    }
+                }
+            } catch (error) {
+                const message = error.response?.data?.message || "Unable to fetch product details";
+                toast.error(message);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  const [loading, setLoading] = useState(true);
+        fetchProductData();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [id]);
 
-  const [addingToCart, setAddingToCart] = useState(false);
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-
-        const response = await getSingleProduct(id);
-
-        setProduct(response.data);
-      } catch (error) {
-        const message =
-          error.response?.data?.message || "Unable to fetch product";
-
-        toast.error(message);
-      } finally {
-        setLoading(false);
-      }
+    const increaseQuantity = () => {
+        if (quantity < product.stock) {
+            setQuantity((prev) => prev + 1);
+        }
     };
 
-    fetchProduct();
-  }, [id]);
+    const decreaseQuantity = () => {
+        if (quantity > 1) {
+            setQuantity((prev) => prev - 1);
+        }
+    };
 
-  const increaseQuantity = () => {
-    if (quantity < product.stock) {
-      setQuantity((previousQuantity) => previousQuantity + 1);
-    }
-  };
+    const handleAddToCart = async () => {
+        if (!user) {
+            toast.error("Please sign in to add products to cart");
+            navigate("/login");
+            return;
+        }
 
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity((previousQuantity) => previousQuantity - 1);
-    }
-  };
+        try {
+            setAddingToCart(true);
+            await addToCart(product._id, quantity);
+            toast.success(`${product.name} added to cart!`);
+        } catch (error) {
+            const message = error.response?.data?.message || "Unable to add product to cart";
+            toast.error(message);
+        } finally {
+            setAddingToCart(false);
+        }
+    };
 
-  const handleAddToCart = async () => {
-    if (!user) {
-        toast.error(
-            "Please sign in to add products to cart"
-        );
+    const handleBuyNow = async () => {
+        await handleAddToCart();
+        navigate("/cart");
+    };
 
-        navigate("/login");
+    const handleToggleWishlist = async () => {
+        if (isLiked) {
+            await removeItemFromWishlist(product._id);
+        } else {
+            await addItemToWishlist(product._id);
+        }
+    };
 
-        return;
-    }
-
-    try {
-        setAddingToCart(true);
-
-        const response = await addToCart(
-            product._id,
-            quantity
-        );
-
-        toast.success(response.message);
-
-        await fetchCart();
-    } catch (error) {
-        const message =
-            error.response?.data?.message ||
-            "Unable to add product to cart";
-
-        toast.error(message);
-    } finally {
-        setAddingToCart(false);
-    }
-};
-  if (loading) {
-    return <ProductDetailsSkeleton />;
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <Navbar />
-
-        <main className="flex min-h-[calc(100vh-72px)] items-center justify-center px-5">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-950">
-              Product not found
-            </h1>
-
-            <p className="mt-3 text-slate-600">
-              The product you're looking for is unavailable.
-            </p>
-
-            <Link
-              to="/products"
-              className="mt-7 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              <ArrowLeft size={18} />
-              Back to shop
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  const productImage = product.images?.[0] || product.image;
-
-  const isOutOfStock = product.stock <= 0;
-
-  return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
-
-      <main>
-        <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10 lg:py-14">
-          <Link
-            to="/products"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950"
-          >
-            <ArrowLeft size={18} />
-            Back to shop
-          </Link>
-
-          <div className="mt-8 grid gap-10 lg:grid-cols-2 lg:gap-16">
-            {/* Product Image */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-slate-100">
-              <div className="aspect-square">
-                {productImage ? (
-                  <img
-                    src={productImage}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-sm font-medium text-slate-400">
-                      No image available
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {isOutOfStock && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/45">
-                  <span className="rounded-full bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-slate-950">
-                    Out of stock
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Product Information */}
-            <div className="flex flex-col justify-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
-                {product.category}
-              </p>
-
-              <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-                {product.name}
-              </h1>
-
-              <p className="mt-6 text-3xl font-bold text-slate-950">
-                ₹{Number(product.price).toLocaleString("en-IN")}
-              </p>
-
-              <p className="mt-6 text-base leading-8 text-slate-600">
-                {product.description}
-              </p>
-
-              <div className="my-8 border-t border-slate-200" />
-
-              {/* Stock */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-700">
-                  Availability
-                </p>
-
-                {isOutOfStock ? (
-                  <span className="text-sm font-semibold text-red-600">
-                    Out of stock
-                  </span>
-                ) : product.stock <= 5 ? (
-                  <span className="text-sm font-semibold text-amber-700">
-                    Only {product.stock} left
-                  </span>
-                ) : (
-                  <span className="text-sm font-semibold text-emerald-700">
-                    In stock
-                  </span>
-                )}
-              </div>
-
-              {!isOutOfStock && (
-                <>
-                  {/* Quantity */}
-                  <div className="mt-7">
-                    <p className="text-sm font-semibold text-slate-700">
-                      Quantity
-                    </p>
-
-                    <div className="mt-3 flex w-fit items-center rounded-xl border border-slate-300 bg-white">
-                      <button
-                        type="button"
-                        onClick={decreaseQuantity}
-                        disabled={quantity === 1}
-                        className="flex h-12 w-12 items-center justify-center text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        <Minus size={18} />
-                      </button>
-
-                      <span className="flex h-12 min-w-12 items-center justify-center border-x border-slate-300 px-4 text-sm font-bold text-slate-950">
-                        {quantity}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={increaseQuantity}
-                        disabled={quantity === product.stock}
-                        className="flex h-12 w-12 items-center justify-center text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        <Plus size={18} />
-                      </button>
+    if (loading) {
+        return (
+            <div className="max-w-7xl mx-auto px-4 py-16">
+                <div className="grid gap-10 lg:grid-cols-2">
+                    <div className="aspect-square bg-slate-200 rounded-3xl animate-pulse" />
+                    <div className="space-y-4 py-6">
+                        <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
+                        <div className="h-10 w-3/4 bg-slate-200 rounded animate-pulse" />
+                        <div className="h-8 w-24 bg-slate-200 rounded animate-pulse" />
+                        <div className="h-24 w-full bg-slate-100 rounded animate-pulse" />
                     </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_auto]">
-                    <button
-                      type="button"
-                      onClick={handleAddToCart}
-                      disabled={addingToCart}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <ShoppingBag size={19} />
-
-                      {addingToCart ? "Adding to cart..." : "Add to cart"}
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label="Add to wishlist"
-                      className="inline-flex h-13 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                    >
-                      <Heart size={20} />
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* Benefits */}
-              <div className="mt-10 grid gap-4 border-t border-slate-200 pt-8 sm:grid-cols-2">
-                <div className="flex items-start gap-3">
-                  <Truck size={20} className="mt-0.5 shrink-0 text-slate-700" />
-
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">
-                      Reliable delivery
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Track your order from checkout to delivery.
-                    </p>
-                  </div>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <ShieldCheck
-                    size={20}
-                    className="mt-0.5 shrink-0 text-slate-700"
-                  />
-
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">
-                      Secure shopping
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Your account and checkout experience are protected.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
+        );
+    }
 
-function ProductDetailsSkeleton() {
-  return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    if (!product) {
+        return (
+            <div className="max-w-xl mx-auto px-4 py-20 text-center">
+                <h1 className="text-3xl font-extrabold text-slate-900">Product Not Found</h1>
+                <p className="text-slate-500 text-sm mt-2">The product you requested could not be located.</p>
+                <Link
+                    to="/products"
+                    className="inline-flex items-center gap-2 mt-6 bg-indigo-600 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-indigo-700 transition"
+                >
+                    <ArrowLeft size={18} /> Back to Catalog
+                </Link>
+            </div>
+        );
+    }
 
-      <main className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          <div className="aspect-square animate-pulse rounded-[2rem] bg-slate-200" />
+    const productImage = product.images?.[0] || product.image;
+    const isOutOfStock = product.stock <= 0;
 
-          <div className="flex flex-col justify-center">
-            <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+            
+            {/* Breadcrumb Navigation */}
+            <div>
+                <Link
+                    to="/products"
+                    className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-indigo-600 transition"
+                >
+                    <ArrowLeft size={16} /> Back to Products Catalog
+                </Link>
+            </div>
 
-            <div className="mt-5 h-12 w-4/5 animate-pulse rounded bg-slate-200" />
+            {/* Main Product Showcase Grid */}
+            <div className="grid gap-12 lg:grid-cols-2 items-start">
+                
+                {/* Product Media Column */}
+                <div className="space-y-4">
+                    <div className="relative overflow-hidden rounded-3xl bg-slate-100 border border-slate-200 shadow-lg aspect-square">
+                        {productImage ? (
+                            <img
+                                src={productImage}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-slate-400">
+                                No image available
+                            </div>
+                        )}
 
-            <div className="mt-6 h-8 w-32 animate-pulse rounded bg-slate-200" />
+                        <button
+                            onClick={handleToggleWishlist}
+                            className={`absolute top-4 right-4 p-3 rounded-full shadow-md backdrop-blur transition ${
+                                isLiked
+                                    ? "bg-rose-50 text-rose-500"
+                                    : "bg-white/90 text-slate-400 hover:text-rose-500"
+                            }`}
+                        >
+                            <Heart className={`w-5 h-5 ${isLiked ? "fill-rose-500" : ""}`} />
+                        </button>
 
-            <div className="mt-8 h-4 w-full animate-pulse rounded bg-slate-100" />
+                        {isOutOfStock && (
+                            <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center">
+                                <span className="bg-white text-slate-950 px-6 py-2 rounded-full font-black uppercase text-sm shadow-xl tracking-wider">
+                                    Out of Stock
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-            <div className="mt-3 h-4 w-full animate-pulse rounded bg-slate-100" />
+                {/* Product Specifications & Purchase Column */}
+                <div className="space-y-6">
+                    <div>
+                        <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-md">
+                            {product.category}
+                        </span>
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 leading-tight">
+                            {product.name}
+                        </h1>
+                        <p className="text-3xl font-black text-slate-900 mt-4">
+                            ₹{Number(product.price).toLocaleString("en-IN")}
+                        </p>
+                    </div>
 
-            <div className="mt-3 h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+                    <div className="border-t border-slate-200 pt-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</h3>
+                        <p className="text-slate-600 text-sm leading-relaxed">
+                            {product.description}
+                        </p>
+                    </div>
 
-            <div className="mt-10 h-14 w-full animate-pulse rounded-xl bg-slate-200" />
-          </div>
+                    {/* Stock Status Indicator */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-500">Availability:</span>
+                        {isOutOfStock ? (
+                            <span className="text-xs font-bold text-rose-600">Out of Stock</span>
+                        ) : product.stock <= 5 ? (
+                            <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
+                                ⚠️ Only {product.stock} items remaining!
+                            </span>
+                        ) : (
+                            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                                <CheckCircle2 className="w-4 h-4" /> In Stock ({product.stock} available)
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Quantity Selector & Purchase Buttons */}
+                    {!isOutOfStock && (
+                        <div className="space-y-6 pt-2">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                                    Select Quantity
+                                </label>
+                                <div className="inline-flex items-center rounded-xl border border-slate-300 bg-white p-1 shadow-xs">
+                                    <button
+                                        onClick={decreaseQuantity}
+                                        disabled={quantity === 1}
+                                        className="p-2.5 text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-30"
+                                    >
+                                        <Minus size={16} />
+                                    </button>
+                                    <span className="px-5 font-black text-sm text-slate-900">
+                                        {quantity}
+                                    </span>
+                                    <button
+                                        onClick={increaseQuantity}
+                                        disabled={quantity === product.stock}
+                                        className="p-2.5 text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-30"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <button
+                                    onClick={handleAddToCart}
+                                    disabled={addingToCart}
+                                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-4 px-6 rounded-2xl shadow-lg shadow-indigo-500/20 transition active:scale-98 disabled:opacity-50"
+                                >
+                                    <ShoppingBag size={18} />
+                                    {addingToCart ? "Adding..." : "Add to Cart"}
+                                </button>
+
+                                <button
+                                    onClick={handleBuyNow}
+                                    className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-4 px-6 rounded-2xl shadow-lg transition active:scale-98"
+                                >
+                                    <Zap size={18} /> Buy Now
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Assurance Badges */}
+                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-200 text-slate-600 text-xs">
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <Truck className="w-5 h-5 text-indigo-600" />
+                            <div>
+                                <p className="font-bold text-slate-900">Fast Shipping</p>
+                                <p className="text-[10px] text-slate-500">Delivered within 3-5 days</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                            <div>
+                                <p className="font-bold text-slate-900">Guaranteed Genuine</p>
+                                <p className="text-[10px] text-slate-500">100% authentic product</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* Related Products Section */}
+            {relatedProducts.length > 0 && (
+                <div className="pt-12 border-t border-slate-200 space-y-6">
+                    <h2 className="text-2xl font-extrabold text-slate-900">Related Products</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                        {relatedProducts.map((relProd) => (
+                            <ProductCard key={relProd._id} product={relProd} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
         </div>
-      </main>
-    </div>
-  );
+    );
 }
 
 export default ProductDetails;

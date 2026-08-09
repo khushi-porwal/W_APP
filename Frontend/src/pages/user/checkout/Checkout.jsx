@@ -20,11 +20,15 @@ import {
 
 import toast from "react-hot-toast";
 
-import Navbar from "../../../components/common/Navbar";
+
 
 import {
     CartContext,
 } from "../../../context/CartContext";
+
+import {
+    AuthContext,
+} from "../../../context/AuthContext";
 
 import {
     addAddress,
@@ -34,6 +38,12 @@ import {
 import {
     placeOrder,
 } from "../../../services/orderService";
+
+import {
+    createPaymentOrder,
+    verifyPayment,
+    markPaymentFailed,
+} from "../../../services/paymentService";
 
 
 const initialAddressForm = {
@@ -48,6 +58,7 @@ const initialAddressForm = {
 
 
 function Checkout() {
+    const { user } = useContext(AuthContext);
     const {
         cartItems,
         totalItems,
@@ -341,161 +352,158 @@ function Checkout() {
 
 
     // ==========================================
-    // PLACE ORDER
+    // PLACE ORDER & PAYMENT INTEGRATION
     // ==========================================
 
     const handlePlaceOrder = async () => {
 
-        // ======================================
-        // VALIDATE ADDRESS
-        // ======================================
-
+        // Validate Address
         if (!selectedAddress) {
-            toast.error(
-                "Please select a delivery address"
-            );
-
+            toast.error("Please select a delivery address");
             return;
         }
 
-
-        // ======================================
-        // VALIDATE CART
-        // ======================================
-
+        // Validate Cart
         if (!cartItems?.length) {
-            toast.error(
-                "Your cart is empty"
-            );
-
+            toast.error("Your cart is empty");
             return;
         }
-
 
         try {
             setPlacingOrder(true);
 
-
-            // ==================================
-            // PREPARE ORDER DATA
-            // ==================================
-
+            // Prepare Order Data
             const orderData = {
                 address: selectedAddress,
                 paymentMethod,
             };
 
-
-            // ==================================
-            // ADD COUPON IF AVAILABLE
-            // ==================================
-
             if (couponCode.trim()) {
-                orderData.couponCode =
-                    couponCode
-                        .trim()
-                        .toUpperCase();
+                orderData.couponCode = couponCode.trim().toUpperCase();
             }
 
-
-            console.log(
-                "ORDER DATA:",
-                orderData
-            );
-
-
-            // ==================================
-            // PLACE ORDER API
-            // ==================================
-
-            const response =
-                await placeOrder(orderData);
-
-
-            console.log(
-                "PLACE ORDER RESPONSE:",
-                response
-            );
-
-            console.log(
-                "PLACE ORDER DATA:",
-                response?.data
-            );
-
-
-            // ==================================
-            // GET ORDER ID SAFELY
-            // ==================================
-
-            const orderId =
-                response?.data?._id ||
-                response?.data?.order?._id;
-
-
-            console.log(
-                "FINAL ORDER ID:",
-                orderId
-            );
-
-
-            // ==================================
-            // VALIDATE ORDER ID
-            // ==================================
+            // Place Order API
+            const response = await placeOrder(orderData);
+            const orderId = response?.data?._id || response?.data?.order?._id;
 
             if (!orderId) {
-                console.error(
-                    "ORDER ID NOT FOUND:",
-                    response
-                );
-
-                throw new Error(
-                    "Order ID not found in server response"
-                );
+                throw new Error("Order ID not found in server response");
             }
 
+            // If Cash on Delivery
+            if (paymentMethod === "CashOnDelivery") {
+                toast.success(response?.message || "Order placed successfully");
+                await fetchCart();
+                navigate(`/order/${orderId}`);
+                return;
+            }
 
-            // ==================================
-            // SUCCESS MESSAGE
-            // ==================================
+            // If Razorpay Online Payment
+            if (paymentMethod === "Razorpay") {
+                try {
+                    const paymentOrderRes = await createPaymentOrder(orderId);
+                    const razorpayOrder = paymentOrderRes?.data;
 
-            toast.success(
-                response?.message ||
-                "Order placed successfully"
-            );
+                    if (!razorpayOrder) {
+                        throw new Error("Failed to initialize Razorpay order");
+                    }
 
+                    const selectedAddressObj = addresses.find(
+                        (addr) => addr._id === selectedAddress
+                    );
 
-            // ==================================
-            // REFRESH CART
-            // ==================================
+                    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_SyZiAEpn6NAc95";
 
-            await fetchCart();
+                    const options = {
+                        key: razorpayKey,
+                        amount: razorpayOrder.amount,
+                        currency: razorpayOrder.currency || "INR",
+                        name: "LuxeMarket",
+                        description: `Payment for Order #${orderId.slice(-6).toUpperCase()}`,
+                        order_id: razorpayOrder.id,
+                        prefill: {
+                            name: user?.name || selectedAddressObj?.fullName || "",
+                            email: user?.email || "",
+                            contact: selectedAddressObj?.phone || "",
+                        },
+                        theme: {
+                            color: "#4f46e5",
+                        },
+                        handler: async function (paymentResponse) {
+                            try {
+                                setPlacingOrder(true);
+                                await verifyPayment({
+                                    orderId,
+                                    razorpay_order_id: paymentResponse.razorpay_order_id,
+                                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                                    razorpay_signature: paymentResponse.razorpay_signature,
+                                });
+                                toast.success("Payment successful!");
+                                await fetchCart();
+                                navigate(`/order/${orderId}`);
+                            } catch (err) {
+                                toast.error(
+                                    err.response?.data?.message || "Payment verification failed"
+                                );
+                                await fetchCart();
+                                navigate(`/order/${orderId}`);
+                            } finally {
+                                setPlacingOrder(false);
+                            }
+                        },
+                        modal: {
+                            ondismiss: async function () {
+                                try {
+                                    await markPaymentFailed(orderId);
+                                    toast.error("Payment cancelled");
+                                } catch (err) {
+                                    console.error("Failed to update payment status:", err);
+                                }
+                                await fetchCart();
+                                navigate(`/order/${orderId}`);
+                            },
+                        },
+                    };
 
+                    if (!window.Razorpay) {
+                        toast.error("Razorpay SDK is loading or unavailable. Please try again.");
+                        await markPaymentFailed(orderId);
+                        await fetchCart();
+                        navigate(`/order/${orderId}`);
+                        return;
+                    }
 
-            // ==================================
-            // NAVIGATE TO SUCCESS PAGE
-            // ==================================
+                    const rzp = new window.Razorpay(options);
 
-            navigate(
-                `/order/${orderId}`
-            );
+                    rzp.on("payment.failed", async function (failureResponse) {
+                        try {
+                            await markPaymentFailed(orderId);
+                            toast.error(
+                                failureResponse.error?.description || "Payment failed"
+                            );
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
 
+                    rzp.open();
+                } catch (paymentErr) {
+                    toast.error(
+                        paymentErr.response?.data?.message ||
+                        paymentErr.message ||
+                        "Payment initiation failed"
+                    );
+                    await fetchCart();
+                    navigate(`/order/${orderId}`);
+                }
+            }
         } catch (error) {
-            console.error(
-                "PLACE ORDER ERROR:",
-                error
-            );
-
-            console.log(
-                "PLACE ORDER ERROR RESPONSE:",
-                error.response?.data
-            );
-
+            console.error("PLACE ORDER ERROR:", error);
             toast.error(
                 error.response?.data?.message ||
                 error.message ||
                 "Failed to place order"
             );
-
         } finally {
             setPlacingOrder(false);
         }
@@ -519,11 +527,8 @@ function Checkout() {
 
 
     return (
-        <>
-            <Navbar />
-
-            <main className="min-h-screen bg-slate-50">
-                <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+        <main className="min-h-screen bg-slate-50 py-8">
+            <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
 
                     {/* BACK BUTTON */}
 
@@ -1155,7 +1160,6 @@ function Checkout() {
                 )}
 
             </main>
-        </>
     );
 }
 

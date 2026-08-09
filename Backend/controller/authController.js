@@ -52,7 +52,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const existingUser = await User.findOne({ email }).select("+password");
 
   if (!existingUser) {
-    throw new ApiError(401, "Invalid eamil and password");
+    throw new ApiError(401, "Invalid email or password");
   }
 
   const isMatch = await bcrypt.compare(password, existingUser.password);

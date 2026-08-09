@@ -10,7 +10,6 @@ function AdminRoute({ children }) {
         return <h2>Loading...</h2>;
     }
 
-    console.log("User:", user);
     if (!user) {
         return <Navigate to="/login" replace />;
     }

@@ -1,10 +1,14 @@
+const mongoose = require("mongoose");
 const couponModel = require("../../models/coupon/coupon");
 const ApiError = require("../../utils/ApiError");
 const asyncHandler = require("../../utils/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
 
-
 const createCoupon = asyncHandler(async (req, res) => {
+  // =========================
+  // Get Request Data
+  // =========================
+
   const {
     code,
     discountPercentage,
@@ -18,15 +22,8 @@ const createCoupon = asyncHandler(async (req, res) => {
   // Required Fields Validation
   // =========================
 
-  if (
-    !code?.trim() ||
-    discountPercentage === undefined ||
-    !expiryDate
-  ) {
-    throw new ApiError(
-      400,
-      "All required fields are mandatory"
-    );
+  if (!code?.trim() || discountPercentage === undefined || !expiryDate) {
+    throw new ApiError(400, "All required fields are mandatory");
   }
 
   // =========================
@@ -38,21 +35,21 @@ const createCoupon = asyncHandler(async (req, res) => {
     discountPercentage < 1 ||
     discountPercentage > 100
   ) {
-    throw new ApiError(
-      400,
-      "Discount percentage must be between 1 and 100"
-    );
+    throw new ApiError(400, "Discount percentage must be between 1 and 100");
   }
 
   // =========================
   // Expiry Date Validation
   // =========================
 
-  if (new Date(expiryDate) <= new Date()) {
-    throw new ApiError(
-      400,
-      "Expiry date must be in the future"
-    );
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  const expiry = new Date(expiryDate);
+
+  if (expiry <= today) {
+    throw new ApiError(400, "Expiry date must be in the future");
   }
 
   // =========================
@@ -64,10 +61,7 @@ const createCoupon = asyncHandler(async (req, res) => {
   });
 
   if (existingCoupon) {
-    throw new ApiError(
-      409,
-      "Coupon already exists"
-    );
+    throw new ApiError(409, "Coupon already exists");
   }
 
   // =========================
@@ -76,11 +70,17 @@ const createCoupon = asyncHandler(async (req, res) => {
 
   const coupon = await couponModel.create({
     code: code.trim().toUpperCase(),
+
     discountPercentage,
-    expiryDate,
+
+    expiryDate: expiry,
+
     minimumAmount,
+
     maxDiscount,
+
     usageLimit,
+
     isActive: true,
   });
 
@@ -88,17 +88,16 @@ const createCoupon = asyncHandler(async (req, res) => {
   // Send Response
   // =========================
 
-  return res
-    .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        coupon,
-        "Coupon created successfully"
-      )
-    );
-});
+  return res.status(201).json(
+    new ApiResponse(
+      201,
 
+      coupon,
+
+      "Coupon created successfully",
+    ),
+  );
+});
 
 const applyCoupon = asyncHandler(async (req, res) => {
   const { code } = req.body;
@@ -110,10 +109,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   // =========================
 
   if (!code?.trim()) {
-    throw new ApiError(
-      400,
-      "Coupon code is required"
-    );
+    throw new ApiError(400, "Coupon code is required");
   }
 
   // =========================
@@ -121,10 +117,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   // =========================
 
   if (isNaN(amount) || amount <= 0) {
-    throw new ApiError(
-      400,
-      "Invalid order amount"
-    );
+    throw new ApiError(400, "Invalid order amount");
   }
 
   // =========================
@@ -136,10 +129,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   });
 
   if (!coupon) {
-    throw new ApiError(
-      404,
-      "Invalid coupon code"
-    );
+    throw new ApiError(404, "Invalid coupon code");
   }
 
   // =========================
@@ -147,10 +137,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   // =========================
 
   if (!coupon.isActive) {
-    throw new ApiError(
-      400,
-      "Coupon is inactive"
-    );
+    throw new ApiError(400, "Coupon is inactive");
   }
 
   // =========================
@@ -158,10 +145,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   // =========================
 
   if (new Date() > coupon.expiryDate) {
-    throw new ApiError(
-      400,
-      "Coupon has expired"
-    );
+    throw new ApiError(400, "Coupon has expired");
   }
 
   // =========================
@@ -169,10 +153,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   // =========================
 
   if (coupon.usedCount >= coupon.usageLimit) {
-    throw new ApiError(
-      400,
-      "Coupon usage limit exceeded"
-    );
+    throw new ApiError(400, "Coupon usage limit exceeded");
   }
 
   // =========================
@@ -182,7 +163,7 @@ const applyCoupon = asyncHandler(async (req, res) => {
   if (amount < coupon.minimumAmount) {
     throw new ApiError(
       400,
-      `Minimum order amount should be ₹${coupon.minimumAmount}`
+      `Minimum order amount should be ₹${coupon.minimumAmount}`,
     );
   }
 
@@ -190,13 +171,9 @@ const applyCoupon = asyncHandler(async (req, res) => {
   // Discount Calculation
   // =========================
 
-  let discountAmount =
-    (amount * coupon.discountPercentage) / 100;
+  let discountAmount = (amount * coupon.discountPercentage) / 100;
 
-  discountAmount = Math.min(
-    discountAmount,
-    coupon.maxDiscount
-  );
+  discountAmount = Math.min(discountAmount, coupon.maxDiscount);
 
   const finalAmount = amount - discountAmount;
 
@@ -218,126 +195,106 @@ const applyCoupon = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        couponData,
-        "Coupon applied successfully"
-      )
-    );
+    .json(new ApiResponse(200, couponData, "Coupon applied successfully"));
 });
-
 
 const getAllCoupon = asyncHandler(async (req, res) => {
   // =========================
-  // Get All Coupons
+  // Get Query Parameters
+  // =========================
+
+  const { search = "", page = 1, limit = 5 } = req.query;
+
+  // =========================
+  // Build Search Filter
+  // =========================
+
+  const filter = {
+    code: {
+      $regex: search,
+      $options: "i",
+    },
+  };
+
+  // =========================
+  // Count Total Coupons
+  // =========================
+
+  const totalCoupons = await couponModel.countDocuments(filter);
+
+  // =========================
+  // Get Coupons
   // =========================
 
   const coupons = await couponModel
-    .find()
-    .sort({ createdAt: -1 });
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .skip((Number(page) - 1) * Number(limit))
+    .limit(Number(limit));
 
   // =========================
   // No Coupons Found
   // =========================
 
   if (coupons.length === 0) {
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          {
-            totalCoupons: 0,
-            coupons: [],
-          },
-          "No coupons found"
-        )
-      );
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+
+        {
+          totalCoupons: 0,
+          totalPages: 0,
+          currentPage: Number(page),
+          coupons: [],
+        },
+
+        "No coupons found",
+      ),
+    );
   }
+
+  // =========================
+  // Prepare Response
+  // =========================
+
+  const couponData = {
+    totalCoupons,
+
+    totalPages: Math.ceil(totalCoupons / Number(limit)),
+
+    currentPage: Number(page),
+
+    coupons,
+  };
 
   // =========================
   // Send Response
   // =========================
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          totalCoupons: coupons.length,
-          coupons,
-        },
-        "Coupons fetched successfully"
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+
+      couponData,
+
+      "Coupons fetched successfully",
+    ),
+  );
 });
-
-
 
 const deleteCoupon = asyncHandler(async (req, res) => {
-  const couponId = req.params.couponId;
+  // =========================
+  // Get Coupon ID
+  // =========================
+
+  const { couponId } = req.params;
 
   // =========================
   // Validate Coupon ID
   // =========================
 
   if (!mongoose.Types.ObjectId.isValid(couponId)) {
-    throw new ApiError(
-      400,
-      "Invalid Coupon ID"
-    );
-  }
-
-  // =========================
-  // Find And Delete Coupon
-  // =========================
-
-  const coupon = await couponModel.findByIdAndDelete(
-    couponId
-  );
-
-  // =========================
-  // Coupon Not Found
-  // =========================
-
-  if (!coupon) {
-    throw new ApiError(
-      404,
-      "Coupon not found"
-    );
-  }
-
-  // =========================
-  // Send Response
-  // =========================
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        coupon,
-        "Coupon deleted successfully"
-      )
-    );
-});
-
-
-
-const couponUpdate = asyncHandler(async (req, res) => {
-  const couponId = req.params.couponId;
-
-  // =========================
-  // Validate Coupon ID
-  // =========================
-
-  if (!mongoose.Types.ObjectId.isValid(couponId)) {
-    throw new ApiError(
-      400,
-      "Invalid Coupon ID"
-    );
+    throw new ApiError(400, "Invalid Coupon ID");
   }
 
   // =========================
@@ -346,45 +303,331 @@ const couponUpdate = asyncHandler(async (req, res) => {
 
   const coupon = await couponModel.findById(couponId);
 
-  // =========================
-  // Coupon Not Found
-  // =========================
-
   if (!coupon) {
-    throw new ApiError(
-      404,
-      "Coupon not found"
-    );
+    throw new ApiError(404, "Coupon not found");
   }
 
   // =========================
-  // Toggle Active Status
+  // Delete Coupon
   // =========================
 
-  coupon.isActive = !coupon.isActive;
-
-  // =========================
-  // Save Coupon
-  // =========================
-
-  await coupon.save();
+  await coupon.deleteOne();
 
   // =========================
   // Send Response
   // =========================
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        coupon,
-        "Coupon status updated successfully"
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+
+      {},
+
+      "Coupon deleted successfully",
+    ),
+  );
 });
 
+const updateCoupon = asyncHandler(async (req, res) => {
+
+    // =========================
+    // Get Coupon ID
+    // =========================
+
+    const { couponId } = req.params;
+
+    // =========================
+    // Validate Coupon ID
+    // =========================
+
+    if (!mongoose.Types.ObjectId.isValid(couponId)) {
+
+        throw new ApiError(
+            400,
+            "Invalid Coupon ID"
+        );
+
+    }
+
+    // =========================
+    // Find Coupon
+    // =========================
+
+    const coupon = await couponModel.findById(couponId);
+
+    if (!coupon) {
+
+        throw new ApiError(
+            404,
+            "Coupon not found"
+        );
+
+    }
+
+    // =========================
+    // Get Request Data
+    // =========================
+
+    const {
+
+        code,
+
+        discountPercentage,
+
+        expiryDate,
+
+        minimumAmount,
+
+        maxDiscount,
+
+        usageLimit,
+
+        isActive,
+
+    } = req.body;
+
+    // =========================
+    // Update Coupon Code
+    // =========================
+
+    if (code) {
+
+        const existingCoupon = await couponModel.findOne({
+
+            code: code.trim().toUpperCase(),
+
+            _id: { $ne: couponId },
+
+        });
+
+        if (existingCoupon) {
+
+            throw new ApiError(
+                409,
+                "Coupon already exists"
+            );
+
+        }
+
+        coupon.code = code.trim().toUpperCase();
+
+    }
+
+    // =========================
+    // Update Discount Percentage
+    // =========================
+
+    if (discountPercentage !== undefined) {
+
+        if (
+
+            isNaN(discountPercentage) ||
+
+            discountPercentage < 1 ||
+
+            discountPercentage > 100
+
+        ) {
+
+            throw new ApiError(
+
+                400,
+
+                "Discount percentage must be between 1 and 100"
+
+            );
+
+        }
+
+        coupon.discountPercentage = discountPercentage;
+
+    }
+
+    // =========================
+    // Update Expiry Date
+    // =========================
+
+    if (expiryDate) {
+
+        const today = new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+        const expiry = new Date(expiryDate);
+
+        if (expiry <= today) {
+
+            throw new ApiError(
+                400,
+                "Expiry date must be in the future"
+            );
+
+        }
+
+        coupon.expiryDate = expiry;
+
+    }
+
+    // =========================
+    // Update Minimum Amount
+    // =========================
+
+    if (minimumAmount !== undefined) {
+
+        if (minimumAmount < 0) {
+
+            throw new ApiError(
+                400,
+                "Minimum amount cannot be negative"
+            );
+
+        }
+
+        coupon.minimumAmount = minimumAmount;
+
+    }
+
+    // =========================
+    // Update Maximum Discount
+    // =========================
+
+    if (maxDiscount !== undefined) {
+
+        if (maxDiscount < 0) {
+
+            throw new ApiError(
+                400,
+                "Maximum discount cannot be negative"
+            );
+
+        }
+
+        coupon.maxDiscount = maxDiscount;
+
+    }
+
+    // =========================
+    // Update Usage Limit
+    // =========================
+
+    if (usageLimit !== undefined) {
+
+        if (usageLimit < 1) {
+
+            throw new ApiError(
+                400,
+                "Usage limit must be at least 1"
+            );
+
+        }
+
+        coupon.usageLimit = usageLimit;
+
+    }
+
+    // =========================
+    // Update Active Status
+    // =========================
+
+    if (isActive !== undefined) {
+
+        coupon.isActive = isActive;
+
+    }
+
+    // =========================
+    // Save Coupon
+    // =========================
+
+    await coupon.save();
+
+    // =========================
+    // Send Response
+    // =========================
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            coupon,
+
+            "Coupon updated successfully"
+
+        )
+
+    );
+
+});
+
+const toggleCouponStatus = asyncHandler(async (req, res) => {
+
+    const { couponId } = req.params;
+
+    // =========================
+    // Validate Coupon ID
+    // =========================
+
+    if (!mongoose.Types.ObjectId.isValid(couponId)) {
+
+        throw new ApiError(
+            400,
+            "Invalid Coupon ID"
+        );
+
+    }
+
+    // =========================
+    // Find Coupon
+    // =========================
+
+    const coupon = await couponModel.findById(couponId);
+
+    if (!coupon) {
+
+        throw new ApiError(
+            404,
+            "Coupon not found"
+        );
+
+    }
+
+    // =========================
+    // Toggle Status
+    // =========================
+
+    coupon.isActive = !coupon.isActive;
+
+    await coupon.save();
+
+    // =========================
+    // Response
+    // =========================
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            coupon,
+
+            `Coupon ${
+                coupon.isActive ? "activated" : "deactivated"
+            } successfully`
+
+        )
+
+    );
+
+});
 
 module.exports = {
-    couponUpdate,deleteCoupon,getAllCoupon,applyCoupon,createCoupon
-}
+  updateCoupon,
+  deleteCoupon,
+  getAllCoupon,
+  applyCoupon,
+  createCoupon,
+  toggleCouponStatus
+};

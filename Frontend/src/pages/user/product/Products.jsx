@@ -1,63 +1,69 @@
-import {
-    ChevronLeft,
-    ChevronRight,
-    Search,
-    SlidersHorizontal,
-} from "lucide-react";
-
-import {
-    useEffect,
-    useState,
-} from "react";
-
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from "lucide-react";
 import toast from "react-hot-toast";
-
-import Navbar from "../../../components/common/Navbar";
 import ProductCard from "../../../components/product/ProductCard";
-
 import { getAllProducts } from "../../../services/productService";
+import { getPublicCategories } from "../../../services/categoryService";
 
 function Products() {
-    const [products, setProducts] = useState([]);
+    const [searchParams, setSearchParams] = useSearchParams();
 
+    const [products, setProducts] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const [search, setSearch] = useState("");
+    const initialSearch = searchParams.get("search") || "";
+    const initialCategory = searchParams.get("category") || "";
 
-    const [category, setCategory] = useState("");
-
+    const [search, setSearch] = useState(initialSearch);
+    const [category, setCategory] = useState(initialCategory);
     const [sort, setSort] = useState("");
-
     const [page, setPage] = useState(1);
-
     const [totalPages, setTotalPages] = useState(1);
-
     const [totalProducts, setTotalProducts] = useState(0);
+
+    // Sync state if searchParams in URL changes
+    useEffect(() => {
+        const qSearch = searchParams.get("search") || "";
+        const qCategory = searchParams.get("category") || "";
+        setSearch(qSearch);
+        setCategory(qCategory);
+        setPage(1);
+    }, [searchParams]);
+
+    useEffect(() => {
+        const fetchCategoriesList = async () => {
+            try {
+                const res = await getPublicCategories();
+                if (res?.data?.categories) setCategories(res.data.categories);
+                else if (res?.data) setCategories(Array.isArray(res.data) ? res.data : []);
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+            }
+        };
+        fetchCategoriesList();
+    }, []);
 
     const fetchProducts = async () => {
         try {
             setLoading(true);
-
             const response = await getAllProducts({
                 search,
                 category,
                 sort,
                 page,
-                limit: 8,
+                limit: 12,
             });
 
-            setProducts(response.data.products);
-
-            setTotalPages(response.data.totalPages);
-
-            setTotalProducts(response.data.totalProducts);
+            if (response?.data) {
+                setProducts(response.data.products || []);
+                setTotalPages(response.data.totalPages || 1);
+                setTotalProducts(response.data.totalProducts || 0);
+            }
         } catch (error) {
-            const message =
-                error.response?.data?.message ||
-                "Unable to fetch products";
-
+            const message = error.response?.data?.message || "Unable to fetch products";
             toast.error(message);
-
             setProducts([]);
         } finally {
             setLoading(false);
@@ -68,259 +74,176 @@ function Products() {
         fetchProducts();
     }, [category, sort, page]);
 
-    const handleSearch = (e) => {
+    const handleSearchSubmit = (e) => {
         e.preventDefault();
-
         setPage(1);
-
         fetchProducts();
     };
 
-    const handleCategoryChange = (e) => {
-        setCategory(e.target.value);
-
+    const clearFilters = () => {
+        setSearch("");
+        setCategory("");
+        setSort("");
         setPage(1);
-    };
-
-    const handleSortChange = (e) => {
-        setSort(e.target.value);
-
-        setPage(1);
+        setSearchParams({});
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl">
+                <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">Products Catalog</span>
+                <h1 className="text-3xl sm:text-5xl font-black mt-2">Explore Premium Products</h1>
+                <p className="text-slate-300 text-sm sm:text-base mt-2 max-w-xl">
+                    Filter by category, search by keywords, and find the perfect items for your lifestyle.
+                </p>
+            </div>
 
-            <main>
-                {/* Shop Header */}
-                <section className="border-b border-slate-200 bg-white">
-                    <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10 lg:py-18">
-                        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
-                            Shop
-                        </p>
+            {/* Search & Filter Controls */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div className="grid gap-4 md:grid-cols-12 items-center">
+                    
+                    {/* Search Field */}
+                    <form onSubmit={handleSearchSubmit} className="md:col-span-6 relative">
+                        <Search size={18} className="absolute left-4 top-3.5 text-slate-400" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search catalog..."
+                            className="w-full pl-11 pr-24 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                        />
+                        <button
+                            type="submit"
+                            className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition"
+                        >
+                            Search
+                        </button>
+                    </form>
 
-                        <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-                            Discover our collection
-                        </h1>
-
-                        <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-                            Browse products, explore categories and find
-                            something worth adding to your everyday.
-                        </p>
-                    </div>
-                </section>
-
-                <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
-                    {/* Search + Filters */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                        <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto]">
-                            {/* Search */}
-                            <form
-                                onSubmit={handleSearch}
-                                className="relative"
-                            >
-                                <Search
-                                    size={19}
-                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                                />
-
-                                <input
-                                    type="search"
-                                    value={search}
-                                    onChange={(e) =>
-                                        setSearch(e.target.value)
-                                    }
-                                    placeholder="Search products..."
-                                    className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-24 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/10"
-                                />
-
-                                <button
-                                    type="submit"
-                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
-                                >
-                                    Search
-                                </button>
-                            </form>
-
-                            {/* Category */}
-                            <div className="relative">
-                                <SlidersHorizontal
-                                    size={17}
-                                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                                />
-
-                                <select
-                                    value={category}
-                                    onChange={handleCategoryChange}
-                                    className="w-full min-w-48 appearance-none rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/10"
-                                >
-                                    <option value="">
-                                        All categories
-                                    </option>
-
-                                    <option value="Electronics">
-                                        Electronics
-                                    </option>
-
-                                    <option value="Fashion">
-                                        Fashion
-                                    </option>
-
-                                    <option value="Home">
-                                        Home
-                                    </option>
-
-                                    <option value="Beauty">
-                                        Beauty
-                                    </option>
-                                </select>
-                            </div>
-
-                            {/* Sort */}
-                            <select
-                                value={sort}
-                                onChange={handleSortChange}
-                                className="w-full min-w-48 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/10"
-                            >
-                                <option value="">
-                                    Sort by
+                    {/* Category Dropdown */}
+                    <div className="md:col-span-3 relative">
+                        <select
+                            value={category}
+                            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+                            className="w-full py-2.5 px-4 text-sm font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">All Categories</option>
+                            {categories.map((c) => (
+                                <option key={c._id || c.slug} value={c.name}>
+                                    {c.name}
                                 </option>
-
-                                <option value="lowToHigh">
-                                    Price: Low to high
-                                </option>
-
-                                <option value="highToLow">
-                                    Price: High to low
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Result Count */}
-                    <div className="mt-8 flex items-center justify-between">
-                        <p className="text-sm text-slate-600">
-                            <span className="font-semibold text-slate-950">
-                                {totalProducts}
-                            </span>{" "}
-                            products found
-                        </p>
-
-                        {totalPages > 1 && (
-                            <p className="text-sm text-slate-500">
-                                Page {page} of {totalPages}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Products */}
-                    {loading ? (
-                        <ProductSkeleton />
-                    ) : products.length > 0 ? (
-                        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {products.map((product) => (
-                                <ProductCard
-                                    key={product._id}
-                                    product={product}
-                                />
                             ))}
-                        </div>
-                    ) : (
-                        <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center">
-                            <Search
-                                size={32}
-                                className="mx-auto text-slate-400"
-                            />
+                        </select>
+                    </div>
 
-                            <h2 className="mt-5 text-xl font-semibold text-slate-950">
-                                No products found
-                            </h2>
-
-                            <p className="mt-2 text-sm text-slate-600">
-                                Try changing your search or filters.
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Pagination */}
-                    {!loading &&
-                        products.length > 0 &&
-                        totalPages > 1 && (
-                            <div className="mt-12 flex items-center justify-center gap-3">
-                                <button
-                                    type="button"
-                                    disabled={page === 1}
-                                    onClick={() =>
-                                        setPage(
-                                            (previousPage) =>
-                                                previousPage - 1
-                                        )
-                                    }
-                                    className="flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    <ChevronLeft size={18} />
-
-                                    Previous
-                                </button>
-
-                                <div className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white">
-                                    {page}
-                                </div>
-
-                                <button
-                                    type="button"
-                                    disabled={page === totalPages}
-                                    onClick={() =>
-                                        setPage(
-                                            (previousPage) =>
-                                                previousPage + 1
-                                        )
-                                    }
-                                    className="flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Next
-
-                                    <ChevronRight size={18} />
-                                </button>
-                            </div>
-                        )}
-                </section>
-            </main>
-        </div>
-    );
-}
-
-function ProductSkeleton() {
-    return (
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-                <div
-                    key={index}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-                >
-                    <div className="aspect-square animate-pulse bg-slate-200" />
-
-                    <div className="p-5">
-                        <div className="h-5 w-3/4 animate-pulse rounded bg-slate-200" />
-
-                        <div className="mt-4 h-4 w-full animate-pulse rounded bg-slate-100" />
-
-                        <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-slate-100" />
-
-                        <div className="mt-6 h-6 w-24 animate-pulse rounded bg-slate-200" />
+                    {/* Sort Dropdown */}
+                    <div className="md:col-span-3">
+                        <select
+                            value={sort}
+                            onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                            className="w-full py-2.5 px-4 text-sm font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">Sort by: Default</option>
+                            <option value="lowToHigh">Price: Low to High</option>
+                            <option value="highToLow">Price: High to Low</option>
+                        </select>
                     </div>
                 </div>
-            ))}
+
+                {/* Active Filter Tags */}
+                {(category || search || sort) && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
+                        <span className="text-slate-400 font-bold">Active Filters:</span>
+                        {category && (
+                            <span className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                                Category: {category}
+                            </span>
+                        )}
+                        {search && (
+                            <span className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                                Query: "{search}"
+                            </span>
+                        )}
+                        <button
+                            onClick={clearFilters}
+                            className="text-rose-600 font-bold hover:underline ml-auto flex items-center gap-1"
+                        >
+                            <X className="w-3.5 h-3.5" /> Clear All
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Results Count Bar */}
+            <div className="flex items-center justify-between text-sm text-slate-600">
+                <p>
+                    Showing <span className="font-extrabold text-slate-900">{totalProducts}</span> products
+                </p>
+                {totalPages > 1 && (
+                    <p className="font-semibold text-slate-500">
+                        Page {page} of {totalPages}
+                    </p>
+                )}
+            </div>
+
+            {/* Products Grid */}
+            {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {Array.from({ length: 8 }).map((_, index) => (
+                        <div key={index} className="h-80 bg-slate-100 rounded-2xl animate-pulse" />
+                    ))}
+                </div>
+            ) : products.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {products.map((product) => (
+                        <ProductCard key={product._id} product={product} />
+                    ))}
+                </div>
+            ) : (
+                <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center my-10 max-w-lg mx-auto">
+                    <Search size={40} className="mx-auto text-slate-300 mb-3" />
+                    <h3 className="text-lg font-bold text-slate-900">No matching products</h3>
+                    <p className="text-slate-500 text-xs mt-1">
+                        Try adjusting your search keyword or clearing category filters.
+                    </p>
+                    <button
+                        onClick={clearFilters}
+                        className="mt-4 bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
+                    >
+                        Reset Catalog
+                    </button>
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && products.length > 0 && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 pt-6">
+                    <button
+                        disabled={page === 1}
+                        onClick={() => setPage((prev) => prev - 1)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <ChevronLeft size={16} /> Previous
+                    </button>
+
+                    <span className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs">
+                        {page} / {totalPages}
+                    </span>
+
+                    <button
+                        disabled={page === totalPages}
+                        onClick={() => setPage((prev) => prev + 1)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        Next <ChevronRight size={16} />
+                    </button>
+                </div>
+            )}
+
         </div>
     );
 }
 
 export default Products;
-
-
-// Interview mein bolna:
-
-// “The frontend sends filter, sorting and pagination values as 
-// query parameters, while MongoDB handles filtering, sorting and 
-// pagination on the backend.”

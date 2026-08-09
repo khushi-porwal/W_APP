@@ -884,6 +884,93 @@ const getBestCustomer = asyncHandler(async (req, res) => {
 //     );
 // });
 
+const createUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  if (!name || !email || !password) {
+    throw new ApiError(400, "Name, email and password are required");
+  }
+
+  const existingUser = await userModel.findOne({ email: email.toLowerCase().trim() });
+  if (existingUser) {
+    throw new ApiError(409, "User with this email already exists");
+  }
+
+  const bcrypt = require("bcryptjs");
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = await userModel.create({
+    name,
+    email: email.toLowerCase().trim(),
+    password: hashedPassword,
+    role: role === "admin" ? "admin" : "user",
+  });
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        createdAt: newUser.createdAt,
+      },
+      "User created successfully"
+    )
+  );
+});
+
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!["user", "admin"].includes(role)) {
+    throw new ApiError(400, "Invalid role. Role must be 'user' or 'admin'");
+  }
+
+  const user = await userModel.findById(id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  user.role = role;
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      `User role updated to ${role} successfully`
+    )
+  );
+});
+
+const deleteUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await userModel.findById(id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Prevent deleting self if same id (safety check)
+  if (req.user && req.user._id.toString() === id) {
+    throw new ApiError(400, "You cannot delete your own admin account");
+  }
+
+  await user.deleteOne();
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "User account deleted successfully")
+  );
+});
+
 module.exports = {
   getAllOrder,
   updateOrderStatus,
@@ -896,6 +983,9 @@ module.exports = {
   getOrderByStatus,
   getDashboardStats,
   getBestCustomer,
+  createUser,
+  updateUserRole,
+  deleteUser,
 };
 
 // $unwind  → Array todna

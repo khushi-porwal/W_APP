@@ -12,7 +12,10 @@ import AuthProvider from "./context/AuthContext";
 
 import { CartProvider } from "./context/CartContext";
 
+import { WishlistProvider } from "./context/WishlistContext";
+
 import "./index.css";
+
 
 createRoot(
     document.getElementById("root")
@@ -21,7 +24,9 @@ createRoot(
         <BrowserRouter>
             <AuthProvider>
                 <CartProvider>
-                    <App />
+                    <WishlistProvider>
+                        <App />
+                    </WishlistProvider>
                 </CartProvider>
             </AuthProvider>
 

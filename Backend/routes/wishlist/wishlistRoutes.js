@@ -35,7 +35,7 @@ const authMiddleware = require("../../middleware/authMiddleware")
  *         description: Product already in wishlist
  */
 
-router.post("/add-to-wishlist/:productId",addToWishlist)
+router.post("/add-to-wishlist/:productId", authMiddleware, addToWishlist);
 
 
 /**

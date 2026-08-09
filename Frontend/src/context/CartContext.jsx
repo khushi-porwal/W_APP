@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { AuthContext } from "./AuthContext";
 
 import {
+    addToCart as apiAddToCart,
     deleteCart,
     getCart,
     updateCart,
@@ -68,6 +69,23 @@ export const CartProvider = ({ children }) => {
         }
     }, [user]);
 
+    const addToCart = async (productId, quantity = 1) => {
+        if (!user) {
+            toast.error("Please login to add items to cart!");
+            return;
+        }
+        try {
+            await apiAddToCart(productId, quantity);
+            await fetchCart();
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                "Unable to add to cart";
+            toast.error(message);
+            throw error;
+        }
+    };
+
     const changeCartQuantity = async (
         cartId,
         quantity
@@ -116,6 +134,7 @@ export const CartProvider = ({ children }) => {
         totalAmount,
         cartLoading,
         fetchCart,
+        addToCart,
         changeCartQuantity,
         removeCartItem,
     };

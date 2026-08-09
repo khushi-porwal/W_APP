@@ -5,6 +5,7 @@ import AdminLayout from "../layout/AdminLayout";
 
 import Dashboard from "../pages/admin/dashboard/Dashboard";
 
+import Coupon from "../pages/admin/coupon/Coupons";
 import AllProducts from "../pages/admin/product/AllProduct";
 import AddProduct from "../pages/admin/product/AddProduct";
 import EditProduct from "../pages/admin/product/EditProduct";
@@ -12,73 +13,43 @@ import EditProduct from "../pages/admin/product/EditProduct";
 import AllOrders from "../pages/admin/order/AllOrders";
 import OrderDetails from "../pages/admin/order/OrderDetails";
 
-import Categories from "../pages/admin/category/Categories"
-
+import Categories from "../pages/admin/category/Categories";
 
 function AdminRoutes() {
+  return (
+    <>
+      <Routes>
+        <Route
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          {/* Dashboard */}
 
-    console.log("AdminRoutes Rendered");
+          <Route path="/admin/dashboard" element={<Dashboard />} />
 
-    return (
-        <>
-            <h1 style={{ color: "red" }}>ADMIN ROUTES LOADED</h1>
+          {/* Products */}
 
-           
-        <Routes>
+          <Route path="/admin/products" element={<AllProducts />} />
 
-            <Route
-                element={
-                    <AdminRoute>
-                        <AdminLayout />
-                    </AdminRoute>
-                }
-            >
+          <Route path="/admin/add-product" element={<AddProduct />} />
 
-                {/* Dashboard */}
+          <Route path="/admin/categories" element={<Categories />} />
+          <Route path="/admin/edit-product/:id" element={<EditProduct />} />
 
-                <Route
-                    path="/admin/dashboard"
-                    element={<Dashboard />}
-                />
+          {/* Orders */}
 
-                {/* Products */}
+          <Route path="/admin/orders" element={<AllOrders />} />
 
-                <Route
-                    path="/admin/products"
-                    element={<AllProducts />}
-                />
+          <Route path="/admin/orders/:orderId" element={<OrderDetails />} />
 
-                <Route
-                    path="/admin/add-product"
-                    element={<AddProduct />}
-                />
-
-                <Route
-    path="/admin/categories"
-    element={<Categories />}
-/>
-                <Route
-                    path="/admin/edit-product/:id"
-                    element={<EditProduct />}
-                />
-
-                {/* Orders */}
-
-                <Route
-                    path="/admin/orders"
-                    element={<AllOrders />}
-                />
-
-                <Route
-                    path="/admin/orders/:orderId"
-                    element={<OrderDetails />}
-                />
-
-            </Route>
-
-        </Routes>
-        </>
-    );
+          <Route path="/admin/coupons" element={<Coupon />} />
+        </Route>
+      </Routes>
+    </>
+  );
 }
 
 export default AdminRoutes;

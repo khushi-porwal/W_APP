@@ -12,7 +12,7 @@ import TopCategories from "../../../components/admin/TopCategories";
 import BestCustomers from "../../../components/admin/BestCustomers";
 import LowStockProducts from "../../../components/admin/LowStockProducts";
 import TopSellingProducts from "../../../components/admin/TopSellingProducts";
-import OrderStatusChart from "../../../components/admin/OrderStatusChart";
+import OrderStatusChart from "../../../components/order/OrderStatusChart";
 import { getDashboardStats } from "../../../services/adminService";
 import MonthlyRevenueChart from "../../../components/admin/MonthlyRevenueChart";
 function Dashboard() {

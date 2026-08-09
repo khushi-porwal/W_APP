@@ -11,6 +11,8 @@ export const getAllProducts = async (params = {}) => {
     return response.data;
 };
 
+export const getProducts = getAllProducts;
+
 export const createProduct = async (
     formData
 ) => {

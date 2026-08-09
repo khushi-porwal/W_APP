@@ -14,6 +14,7 @@ const authRoutes = require('./routes/authRoutes')
 const reviewRoutes = require("./routes/review/review")
 const cartRoutes = require("./routes/cart/cartRoutes")
 const productRoutes = require("./routes/product/productRoutes")
+const couponRoutes = require("./routes/coupon/coupon")
 const wishlistRoutes = require("./routes/wishlist/wishlistRoutes")
 const categoryRoutes = require("./routes/category/categoryRoutes")
 const cors = require("cors")
@@ -33,8 +34,10 @@ app.use(express.urlencoded({
 
 
 const limiter = rateLimit({
-    windowMs:15*60*1000,
-    max:100
+    windowMs: 15 * 60 * 1000,
+    max: 1000, // Increased to allow admin dashboard multi-widget requests
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
 
@@ -51,7 +54,8 @@ app.use(cartRoutes)
 app.use(orderRoutes)
 app.use(addressRoutes)
 app.use(reviewRoutes)
-app.use(adminRoutes)
+app.use(couponRoutes)
+app.use("/admin", adminRoutes)
 app.use(categoryRoutes)
 app.use(wishlistRoutes)
 app.use(paymentRoutes)
