@@ -1,0 +1,73 @@
+import api from "./api";
+
+export const getAllProducts = async (params = {}) => {
+    const response = await api.get(
+        "/get-product",
+        {
+            params,
+        }
+    );
+
+    return response.data;
+};
+
+export const getProducts = getAllProducts;
+
+export const createProduct = async (
+    formData
+) => {
+
+    const response = await api.post(
+        "/create-product",
+        formData,
+        {
+            headers: {
+                "Content-Type":
+                    "multipart/form-data",
+            },
+        }
+    );
+
+    return response.data;
+};
+
+export const getSingleProduct = async (productId) => {
+    const response = await api.get(
+        `/single-product/${productId}`
+    );
+
+    return response.data;
+};
+
+export const updateProduct = async (
+    productId,
+    formData
+) => {
+
+    const response = await api.put(
+        `/update-product/${productId}`,
+        formData,
+        {
+            headers: {
+                "Content-Type":
+                    "multipart/form-data",
+            },
+        }
+    );
+
+    return response.data;
+};
+
+export const deleteProduct = async (productId) => {
+
+    const response = await api.delete(
+        `/delete-product/${productId}`
+    );
+
+    return response.data;
+};
+
+//Interview answer
+
+// “I use Axios query params to send search, 
+// pagination, category and sorting filters to the backend.”

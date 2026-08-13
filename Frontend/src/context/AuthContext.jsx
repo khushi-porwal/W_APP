@@ -1,0 +1,80 @@
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+
+import api from "../services/api";
+
+export const AuthContext = createContext(null);
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error("useAuth must be used within an AuthProvider");
+    }
+    return context;
+};
+
+function AuthProvider({ children }) {
+    const [user, setUser] = useState(null);
+
+    const [loading, setLoading] = useState(true);
+
+    const token = localStorage.getItem("token");
+
+    const fetchProfile = async () => {
+    try {
+        const response = await api.get("/profile");
+
+        console.log(response.data.data);
+
+        setUser(response.data.data);
+    } catch (error) {
+            localStorage.removeItem("token");
+
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (token) {
+            fetchProfile();
+        } else {
+            setLoading(false);
+        }
+    }, []);
+
+    const login = (token) => {
+        localStorage.setItem(
+            "token",
+            token
+        );
+
+        fetchProfile();
+    };
+
+    const logout = () => {
+        localStorage.removeItem("token");
+
+        setUser(null);
+    };
+
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                loading,
+                login,
+                logout,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+export default AuthProvider;
