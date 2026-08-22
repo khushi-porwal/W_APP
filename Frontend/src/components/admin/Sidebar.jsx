@@ -11,6 +11,7 @@ import {
     BarChart3,
     Settings,
     LogOut,
+    Headphones,
 } from "lucide-react";
 
 const menuItems = [
@@ -28,6 +29,11 @@ const menuItems = [
         title: "Orders",
         path: "/admin/orders",
         icon: ShoppingCart,
+    },
+    {
+        title: "Support Tickets",
+        path: "/admin/tickets",
+        icon: Headphones,
     },
     {
         title: "Users",

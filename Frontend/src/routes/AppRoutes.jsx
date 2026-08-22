@@ -39,6 +39,7 @@ import Coupon from "../pages/admin/coupon/Coupons";
 import Users from "../pages/admin/user/Users";
 import Analytics from "../pages/admin/analytics/Analytics";
 import Settings from "../pages/admin/settings/Settings";
+import Tickets from "../pages/admin/tickets/Tickets";
 
 // General Pages
 import NotFound from "../pages/NotFound";
@@ -152,6 +153,7 @@ function AppRoutes() {
                 <Route path="/admin/categories" element={<Categories />} />
                 <Route path="/admin/orders" element={<AllOrders />} />
                 <Route path="/admin/orders/:orderId" element={<AdminOrderDetails />} />
+                <Route path="/admin/tickets" element={<Tickets />} />
                 <Route path="/admin/coupons" element={<Coupon />} />
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/analytics" element={<Analytics />} />

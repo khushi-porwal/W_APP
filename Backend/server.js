@@ -17,6 +17,7 @@ const productRoutes = require("./routes/product/productRoutes")
 const couponRoutes = require("./routes/coupon/coupon")
 const wishlistRoutes = require("./routes/wishlist/wishlistRoutes")
 const categoryRoutes = require("./routes/category/categoryRoutes")
+const chatRoutes = require("./routes/chat/chatRoutes")
 const cors = require("cors")
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit")
@@ -59,6 +60,7 @@ app.use("/admin", adminRoutes)
 app.use(categoryRoutes)
 app.use(wishlistRoutes)
 app.use(paymentRoutes)
+app.use(chatRoutes)
 app.use(errorHandler)
 
 app.get("/health", (req,res) => {
